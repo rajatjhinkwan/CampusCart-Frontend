@@ -1,5 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import { styles } from "./styles";
+import useUserStore from "../../store/userStore";
 
 import Sidebar from "./components/Sidebar";
 
@@ -14,17 +16,230 @@ import PrivacySettings from "./components/PrivacySettings.jsx";
 import AppPreferences from "./components/AppPreferences.jsx";
 import ListingsSelling from "./components/ListingsSelling.jsx";
 
+const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
+const defaultProfile = {
+  name: "",
+  username: "",
+  bio: "",
+  phone: "",
+  location: "",
+  profileImage: "",
+  avatarFile: null,
+};
+
+const defaultNotifications = {
+  newMessage: true,
+  productSold: true,
+  priceDrop: false,
+  newOffer: true,
+  appUpdates: false,
+};
+
+const defaultPrivacy = {
+  profileVisible: true,
+  activityStatus: true,
+  searchEngineListing: false,
+  dataDownload: false,
+  personalizedAds: true,
+};
+
+const defaultPreferences = {
+  darkMode: false,
+  compactView: false,
+  autoPlayVideos: true,
+  language: "English",
+};
+
+const defaultSelling = {
+  autoRenewListings: true,
+  enableOfferRequests: true,
+  promoteListings: false,
+};
+
+const defaultSecurity = {
+  twoFactor: false,
+  password: {
+    current: "",
+    newPass: "",
+    confirm: "",
+  },
+};
+
 export default function SettingsPage() {
-  // DEFAULT TAB
+  const { isAuthenticated, checkAuth } = useUserStore();
   const [activeTab, setActiveTab] = useState("profile");
+  const [profile, setProfile] = useState(defaultProfile);
+  const [notifications, setNotifications] = useState(defaultNotifications);
+  const [privacy, setPrivacy] = useState(defaultPrivacy);
+  const [preferences, setPreferences] = useState(defaultPreferences);
+  const [sellingPrefs, setSellingPrefs] = useState(defaultSelling);
+  const [security, setSecurity] = useState(defaultSecurity);
+
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  // Ensure user is authenticated
+  useEffect(() => {
+    if (!isAuthenticated) {
+      checkAuth();
+    }
+  }, [isAuthenticated, checkAuth]);
+
+  const loadSettings = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      // Ensure token is set
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
+      const res = await axios.get(`${API}/api/users/me`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const user = res.data?.user || res.data || {};
+      const userSettings = user.settings || {};
+
+      setProfile((prev) => ({
+        ...prev,
+        name: user.name || "",
+        username: user.username || "",
+        bio: user.bio || "",
+        phone: user.phone || "",
+        location: user.location || "",
+        profileImage: user.avatar || "",
+      }));
+
+      setNotifications({ ...defaultNotifications, ...(userSettings.notifications || {}) });
+      setPrivacy({ ...defaultPrivacy, ...(userSettings.privacy || {}) });
+      setPreferences({ ...defaultPreferences, ...(userSettings.preferences || {}) });
+      setSellingPrefs({ ...defaultSelling, ...(userSettings.selling || {}) });
+      setSecurity((prev) => ({
+        ...prev,
+        twoFactor: userSettings.security?.twoFactorEnabled || false,
+      }));
+    } catch (err) {
+      setError(err.response?.data?.message || "Unable to load settings");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const onAvatarSelect = (file, previewUrl) => {
+    setProfile((prev) => ({
+      ...prev,
+      avatarFile: file,
+      profileImage: previewUrl || prev.profileImage,
+    }));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      // Ensure token is set
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
+      const authHeaders = {
+        Authorization: `Bearer ${token}`,
+      };
+
+      // 1) Profile + avatar
+      const profileForm = new FormData();
+      profileForm.append("name", profile.name || "");
+      profileForm.append("username", profile.username || "");
+      profileForm.append("bio", profile.bio || "");
+      profileForm.append("phone", profile.phone || "");
+      profileForm.append("location", profile.location || "");
+      if (profile.avatarFile) {
+        profileForm.append("avatar", profile.avatarFile);
+      }
+      await axios.put(`${API}/api/users/me`, profileForm, {
+        headers: { ...authHeaders, "Content-Type": "multipart/form-data" },
+      });
+
+      // 2) Settings (notifications, privacy, preferences, selling, security)
+      await axios.put(
+        `${API}/api/users/me/settings`,
+        {
+          notifications,
+          privacy,
+          preferences,
+          selling: sellingPrefs,
+          security: { twoFactorEnabled: security.twoFactor },
+        },
+        { headers: authHeaders }
+      );
+
+      // 3) Password change (optional)
+      if (
+        security.password.current ||
+        security.password.newPass ||
+        security.password.confirm
+      ) {
+        if (!security.password.current || !security.password.newPass) {
+          throw new Error("Please enter your current and new password to update it");
+        }
+        if (security.password.newPass !== security.password.confirm) {
+          throw new Error("New password and confirmation do not match");
+        }
+
+        await axios.put(
+          `${API}/api/users/me/password`,
+          {
+            currentPassword: security.password.current,
+            newPassword: security.password.newPass,
+          },
+          { headers: authHeaders }
+        );
+      }
+
+      setMessage("Settings saved successfully");
+      setSecurity((prev) => ({
+        ...prev,
+        password: { current: "", newPass: "", confirm: "" },
+      }));
+      await loadSettings();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || "Unable to save changes");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   // RENDER SCREEN BASED ON TAB
   const renderContent = () => {
     switch (activeTab) {
       case "profile":
-        return <ProfileSettings />;
+        return (
+          <ProfileSettings
+            data={profile}
+            onChange={setProfile}
+            onAvatarSelect={onAvatarSelect}
+          />
+        );
       case "security":
-        return <SecuritySettings />;
+        return (
+          <SecuritySettings
+            data={security}
+            onChange={setSecurity}
+          />
+        );
       case "products":
         return <YourProducts />;
       case "selling":
@@ -32,15 +247,43 @@ export default function SettingsPage() {
       case "payments":
         return <PaymentsTransactions />;
       case "notifications":
-        return <NotificationsSettings />;
+        return (
+          <NotificationsSettings
+            prefs={notifications}
+            onChange={setNotifications}
+          />
+        );
       case "privacy":
-        return <PrivacySettings />;
+        return (
+          <PrivacySettings
+            settings={privacy}
+            onToggle={(key) =>
+              setPrivacy((prev) => ({ ...prev, [key]: !prev[key] }))
+            }
+          />
+        );
       case "preferences":
-        return <AppPreferences />;
+        return (
+          <AppPreferences
+            prefs={preferences}
+            onChange={setPreferences}
+          />
+        );
       case "listings":
-        return <ListingsSelling />;
+        return (
+          <ListingsSelling
+            sellingPrefs={sellingPrefs}
+            onChange={setSellingPrefs}
+          />
+        );
       default:
-        return <ProfileSettings />;
+        return (
+          <ProfileSettings
+            data={profile}
+            onChange={setProfile}
+            onAvatarSelect={onAvatarSelect}
+          />
+        );
     }
   };
 
@@ -49,13 +292,33 @@ export default function SettingsPage() {
       {/* Page Header */}
       <div style={styles.header}>
         <h1 style={{ fontSize: "24px", fontWeight: "bold" }}>Settings</h1>
-        <button style={styles.buttonPrimary}>Save Changes</button>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          {message ? (
+            <span style={{ color: "#16a34a", fontSize: "13px" }}>{message}</span>
+          ) : null}
+          {error ? (
+            <span style={{ color: "#dc2626", fontSize: "13px" }}>{error}</span>
+          ) : null}
+          <button
+            style={{
+              ...styles.buttonPrimary,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+            onClick={handleSave}
+            disabled={saving || loading}
+          >
+            {saving ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
       </div>
 
       {/* Content Area */}
       <div style={styles.mainContent}>
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
-        <div style={{ flex: 1 }}>{renderContent()}</div>
+        <div style={{ flex: 1 }}>
+          {loading ? <div>Loading settings...</div> : renderContent()}
+        </div>
       </div>
     </div>
   );

@@ -4,6 +4,62 @@ import axios from "axios";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
+// Configure axios defaults
+axios.defaults.baseURL = API;
+axios.defaults.headers.common["Content-Type"] = "application/json";
+
+// Request interceptor to add auth token
+axios.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Response interceptor to handle token refresh
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    // If 401 and not already retried, try to refresh token
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        try {
+          const res = await axios.post(`${API}/api/auth/refresh`, {
+            token: refreshToken,
+          });
+
+          const newAccessToken = res.data.accessToken;
+          localStorage.setItem("accessToken", newAccessToken);
+          axios.defaults.headers.common["Authorization"] = `Bearer ${newAccessToken}`;
+          originalRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
+
+          return axios(originalRequest);
+        } catch (refreshError) {
+          // Refresh failed, logout user
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("userDetails");
+          window.location.href = "/user-login";
+          return Promise.reject(refreshError);
+        }
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 const useUserStore = create(
   persist(
     (set, get) => ({
@@ -53,11 +109,16 @@ const useUserStore = create(
 
           const { user, accessToken, refreshToken } = res.data;
 
+          if (!accessToken || !user) {
+            throw new Error("Invalid response from server");
+          }
+
           // Persistence into localStorage
           localStorage.setItem("accessToken", accessToken);
           localStorage.setItem("refreshToken", refreshToken);
           localStorage.setItem("userDetails", JSON.stringify(user));
 
+          // Set axios default header
           axios.defaults.headers.common["Authorization"] = `Bearer ${accessToken}`;
 
           set({
@@ -66,14 +127,16 @@ const useUserStore = create(
             refreshToken,
             isAuthenticated: true,
             loading: false,
+            error: null,
           });
 
           return { success: true };
         } catch (err) {
-          set({ loading: false });
+          const errorMessage = err.response?.data?.message || err.message || "Login failed";
+          set({ loading: false, error: errorMessage });
           return {
             success: false,
-            error: err.response?.data?.message || "Login failed",
+            error: errorMessage,
           };
         }
       },
@@ -104,7 +167,7 @@ const useUserStore = create(
         const refreshToken = localStorage.getItem("refreshToken");
         const userData = localStorage.getItem("userDetails");
 
-        if (!token || !userData) {
+        if (!token) {
           set({ isAuthenticated: false, user: null });
           return;
         }
@@ -112,16 +175,16 @@ const useUserStore = create(
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
         try {
-          // Validate token
+          // Validate token by fetching user profile
           const res = await axios.get(`${API}/api/auth/me`);
+          const user = res.data || (userData ? JSON.parse(userData) : null);
 
           set({
-            user: res.data || JSON.parse(userData),
+            user,
             accessToken: token,
             refreshToken: refreshToken,
             isAuthenticated: true,
           });
-
         } catch (err) {
           console.log("Access token expired. Attempting to refresh...");
           if (refreshToken) {
@@ -141,12 +204,11 @@ const useUserStore = create(
               const profileRes = await axios.get(`${API}/api/auth/me`);
 
               set({
-                user: profileRes.data || JSON.parse(userData),
+                user: profileRes.data || (userData ? JSON.parse(userData) : null),
                 accessToken: newAccessToken,
                 refreshToken: refreshToken,
                 isAuthenticated: true,
               });
-
             } catch (refreshErr) {
               console.log("Refresh token expired or invalid. Logging out.");
               get().logout();
@@ -216,7 +278,7 @@ const useUserStore = create(
       // -----------------------------
       sendMessage: async (conversationId, content) => {
         try {
-          const res = await axios.post(`${API}/api/messages`, {
+          await axios.post(`${API}/api/messages`, {
             conversationId,
             content, // REQUIRED: backend expects content
           });

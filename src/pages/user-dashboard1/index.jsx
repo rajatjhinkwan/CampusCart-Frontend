@@ -1,5 +1,6 @@
 // pages/user-dashboard/index.jsx
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MetricCard } from './components/MetricCard';
@@ -35,7 +36,7 @@ const styles = {
   main: {
     flex: 1,
     overflowY: 'auto',
-    padding: '24px',
+    padding: 20,
   },
   maxWidth: {
     maxWidth: '1280px',
@@ -43,21 +44,21 @@ const styles = {
     width: '100%',
   },
   heading: {
-    marginBottom: '18px',
-    fontSize: '28px',
+    marginBottom: 16,
+    fontSize: 28,
     fontWeight: 700,
     color: '#111827',
   },
   metricsGrid: (cols) => ({
     display: 'grid',
     gridTemplateColumns: `repeat(${cols}, 1fr)`,
-    gap: '24px',
-    marginBottom: '32px',
+    gap: 20,
+    marginBottom: 24,
   }),
   chartsGrid: (isDesktop) => ({
     display: 'grid',
     gridTemplateColumns: isDesktop ? '2fr 1fr' : '1fr',
-    gap: '24px',
+    gap: 20,
   }),
 };
 
@@ -67,6 +68,12 @@ export default function UserDashboard() {
 
   const [metricCols, setMetricCols] = useState(1);
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
+  const [metrics, setMetrics] = useState([
+    { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: DollarSign },
+    { title: 'Active Users', value: '0', change: '', trend: 'up', icon: Users },
+    { title: 'Total Orders', value: '0', change: '', trend: 'up', icon: ShoppingCart },
+    { title: 'Growth Rate', value: '0.0%', change: '', trend: 'up', icon: TrendingUp },
+  ]);
 
   useEffect(() => {
     function updateLayout() {
@@ -87,36 +94,59 @@ export default function UserDashboard() {
     return () => window.removeEventListener('resize', updateLayout);
   }, []);
 
-  const metrics = [
-    {
-      title: 'Total Revenue',
-      value: '₹45,231',
-      change: '+20.1%',
-      trend: 'up',
-      icon: DollarSign,
-    },
-    {
-      title: 'Active Users',
-      value: '2,543',
-      change: '+12.5%',
-      trend: 'up',
-      icon: Users,
-    },
-    {
-      title: 'Total Orders',
-      value: '1,234',
-      change: '+8.3%',
-      trend: 'up',
-      icon: ShoppingCart,
-    },
-    {
-      title: 'Growth Rate',
-      value: '18.2%',
-      change: '+4.2%',
-      trend: 'up',
-      icon: TrendingUp,
-    },
-  ];
+  useEffect(() => {
+    const run = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const [meRes, productsRes, convsRes] = await Promise.all([
+          axios.get('http://localhost:5000/api/users/me', { headers }),
+          axios.get('http://localhost:5000/api/products/my-products', { headers }),
+          axios.get('http://localhost:5000/api/conversations', { headers }),
+        ]);
+        const me = meRes.data?.user || meRes.data || {};
+        const userId = me?._id || me?.id || '';
+        const products = productsRes.data?.products || [];
+        const sold = products.filter((p) => p.isSold);
+        const revenueSum = sold.reduce((sum, p) => {
+          const price = typeof p.price === 'number' ? p.price : Number(p.price) || 0;
+          return sum + price;
+        }, 0);
+        const conversations = Array.isArray(convsRes.data) ? convsRes.data : [];
+        const participantSet = new Set();
+        conversations.forEach((c) => {
+          const parts = Array.isArray(c.participants) ? c.participants : [];
+          parts.forEach((pid) => {
+            const v = typeof pid === 'object' ? (pid._id || pid.id) : pid;
+            if (v && String(v) !== String(userId)) participantSet.add(String(v));
+          });
+        });
+        const now = Date.now();
+        const inDays = (d) => (now - new Date(d).getTime());
+        const last30 = products.filter((p) => p.createdAt && inDays(p.createdAt) <= 30 * 24 * 3600 * 1000).length;
+        const prev30 = products.filter((p) => p.createdAt && inDays(p.createdAt) > 30 * 24 * 3600 * 1000 && inDays(p.createdAt) <= 60 * 24 * 3600 * 1000).length;
+        const rate = prev30 ? ((last30 - prev30) / prev30) * 100 : (last30 ? 100 : 0);
+        const rateFixed = Number.isFinite(rate) ? rate.toFixed(1) : '0.0';
+        const changeStr = (Number(rateFixed) >= 0 ? `+${rateFixed}%` : `${rateFixed}%`);
+        const trendDir = Number(rateFixed) >= 0 ? 'up' : 'down';
+
+        setMetrics([
+          { title: 'Total Revenue', value: `₹${revenueSum}`, change: '', trend: 'up', icon: DollarSign },
+          { title: 'Active Users', value: String(participantSet.size), change: '', trend: 'up', icon: Users },
+          { title: 'Total Orders', value: String(sold.length), change: '', trend: 'up', icon: ShoppingCart },
+          { title: 'Growth Rate', value: `${rateFixed}%`, change: changeStr, trend: trendDir, icon: TrendingUp },
+        ]);
+      } catch {
+        setMetrics([
+          { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: DollarSign },
+          { title: 'Active Users', value: '0', change: '', trend: 'up', icon: Users },
+          { title: 'Total Orders', value: '0', change: '', trend: 'up', icon: ShoppingCart },
+          { title: 'Growth Rate', value: '0.0%', change: '', trend: 'up', icon: TrendingUp },
+        ]);
+      }
+    };
+    run();
+  }, []);
 
   // PAGE RENDER LOGIC
   const renderPage = () => {

@@ -6,8 +6,8 @@ const styles = {
     backgroundColor: '#fff',
     borderRadius: 12,
     border: '1px solid #e5e7eb',
-    padding: '20px',
-    minHeight: '96px',
+    padding: 16,
+    minHeight: 96,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -37,9 +37,10 @@ const styles = {
     justifyContent: 'space-between',
   },
   value: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 700,
     color: '#111827',
+    lineHeight: 1.2,
   },
   change: {
     fontSize: 14,
@@ -53,13 +54,14 @@ const styles = {
   },
 };
 
-export function MetricCard({ title, value, change, trend, icon: Icon }) {
+export function MetricCard(props) {
+  const { title, value, change, trend } = props;
   return (
     <div style={styles.card}>
       <div style={styles.header}>
         <span style={styles.title}>{title}</span>
         <div style={styles.iconContainer}>
-          <Icon style={{ width: 18, height: 18, color: '#2563eb' }} />
+          <props.icon style={{ width: 18, height: 18, color: '#2563eb' }} />
         </div>
       </div>
 

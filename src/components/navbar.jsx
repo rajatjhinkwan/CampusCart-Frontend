@@ -8,6 +8,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation(); // ✅ Tracks current URL
   
+  const [searchQuery, setSearchQuery] = useState("");
   const [category, setCategory] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [showProfileCard, setShowProfileCard] = useState(false); // Changed default to false (cleaner)
@@ -191,7 +192,19 @@ const Navbar = () => {
           <option value="Chennai">Chennai</option>
         </select>
 
-        <button style={styles.searchButton}>
+        <button
+          style={styles.searchButton}
+          onClick={() => {
+            if (searchQuery.trim()) {
+              const params = new URLSearchParams({
+                q: searchQuery.trim(),
+                ...(category && { category }),
+                ...(locationFilter && { location: locationFilter }),
+              });
+              navigate(`/search-results?${params.toString()}`);
+            }
+          }}
+        >
           <Search size={18} />
         </button>
       </div>

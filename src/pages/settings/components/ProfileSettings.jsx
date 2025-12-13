@@ -1,20 +1,16 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function ProfileSettings() {
-  const [form, setForm] = useState({
-    name: "Rajat Singh",
-    username: "rajat_01",
-    bio: "CampusCard User",
-    phone: "",
-    location: "",
-    profileImage: "https://via.placeholder.com/100",
-  });
+export default function ProfileSettings({ data, onChange, onAvatarSelect }) {
+  const form = data || {};
 
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value,
-    });
+    onChange({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleAvatar = (file) => {
+    if (!file) return;
+    const previewUrl = URL.createObjectURL(file);
+    onAvatarSelect(file, previewUrl);
   };
 
   return (
@@ -25,7 +21,7 @@ export default function ProfileSettings() {
       {/* PROFILE IMAGE */}
       <div style={styles.imageBox}>
         <img
-          src={form.profileImage}
+          src={form.profileImage || "https://via.placeholder.com/100"}
           alt="Profile"
           style={styles.image}
         />
@@ -37,12 +33,7 @@ export default function ProfileSettings() {
             type="file"
             id="imageUpload"
             style={{ display: "none" }}
-            onChange={(e) =>
-              setForm({
-                ...form,
-                profileImage: URL.createObjectURL(e.target.files[0]),
-              })
-            }
+            onChange={(e) => handleAvatar(e.target.files?.[0])}
           />
         </div>
       </div>
@@ -53,7 +44,7 @@ export default function ProfileSettings() {
         <input
           type="text"
           name="name"
-          value={form.name}
+          value={form.name || ""}
           onChange={handleChange}
           style={styles.input}
         />
@@ -65,7 +56,7 @@ export default function ProfileSettings() {
         <input
           type="text"
           name="username"
-          value={form.username}
+          value={form.username || ""}
           onChange={handleChange}
           style={styles.input}
         />
@@ -76,7 +67,7 @@ export default function ProfileSettings() {
         <label style={styles.label}>Bio</label>
         <textarea
           name="bio"
-          value={form.bio}
+          value={form.bio || ""}
           onChange={handleChange}
           style={styles.textarea}
         />
@@ -89,7 +80,7 @@ export default function ProfileSettings() {
           type="text"
           name="phone"
           placeholder="Enter phone number"
-          value={form.phone}
+          value={form.phone || ""}
           onChange={handleChange}
           style={styles.input}
         />
@@ -102,7 +93,7 @@ export default function ProfileSettings() {
           type="text"
           name="location"
           placeholder="City, State"
-          value={form.location}
+          value={form.location || ""}
           onChange={handleChange}
           style={styles.input}
         />

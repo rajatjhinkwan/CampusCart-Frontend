@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { io } from "socket.io-client";
 import Navbar from "../../components/navbar.jsx";
 import useUserStore from "../../store/userStore.js";
@@ -15,16 +15,20 @@ export default function MessagesPage() {
         conversationsError,
         messagesError,
         fetchConversations,
+        fetchMessages,
         selectConversation,
         sendMessage,
         isAuthenticated,
         user,
         accessToken,
+        checkAuth,
     } = useUserStore();
 
     const [newMessage, setNewMessage] = useState("");
     const [socket, setSocket] = useState(null);
     const messagesEndRef = useRef(null);
+    const hasFetchedRef = useRef(false);
+    const [authReady, setAuthReady] = useState(false);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,7 +40,6 @@ export default function MessagesPage() {
 
     useEffect(() => {
         if (isAuthenticated && accessToken) {
-            // Initialize socket connection
             const newSocket = io(`${API}/chat`, {
                 auth: { token: accessToken },
             });
@@ -47,38 +50,69 @@ export default function MessagesPage() {
 
             newSocket.on('newMessage', (messageData) => {
                 console.log('New message received:', messageData);
-                // Refresh messages for the current conversation
+                // Update conversations order and refresh current messages without changing selection
+                fetchConversations();
                 if (selectedConversation) {
-                    fetchConversations(); // Refresh conversations to update lastMessage
-                    // Re-fetch messages for current conversation
-                    const currentConversation = conversations.find(c => c._id === selectedConversation);
-                    if (currentConversation) {
-                        selectConversation(selectedConversation);
-                    }
+                    fetchMessages(selectedConversation);
                 }
             });
 
             newSocket.on('messagesRead', (data) => {
                 console.log('Messages marked as read:', data);
-                // Refresh messages
                 if (selectedConversation) {
-                    selectConversation(selectedConversation);
+                    fetchMessages(selectedConversation);
                 }
             });
 
             setSocket(newSocket);
 
             return () => {
+                console.log('Disconnecting socket and cleaning up messages page');
                 newSocket.disconnect();
+                setSocket(null);
             };
         }
-    }, [isAuthenticated, accessToken, selectedConversation, fetchConversations, selectConversation, conversations]);
+    }, [isAuthenticated, accessToken, fetchConversations, fetchMessages, selectedConversation]);
+
+    // Join/leave conversation rooms for real-time updates
+    useEffect(() => {
+        if (!socket) return;
+        // leave previous rooms implicitly handled by server; explicitly leave none
+        if (selectedConversation) {
+            socket.emit('joinConversation', { conversationId: selectedConversation });
+        }
+        return () => {
+            if (selectedConversation) {
+                socket.emit('leaveConversation', { conversationId: selectedConversation });
+            }
+        };
+    }, [socket, selectedConversation]);
 
     useEffect(() => {
-        if (isAuthenticated) {
+        let mounted = true;
+        (async () => {
+            await checkAuth();
+            if (mounted) setAuthReady(true);
+        })();
+        return () => { mounted = false; };
+    }, [checkAuth]);
+
+    useEffect(() => {
+        if (authReady && isAuthenticated && accessToken && !hasFetchedRef.current) {
+            hasFetchedRef.current = true;
             fetchConversations();
         }
-    }, [isAuthenticated, fetchConversations]);
+    }, [authReady, isAuthenticated, accessToken, fetchConversations]);
+
+    // Cleanup on component unmount to prevent state persistence across routes
+    useEffect(() => {
+        return () => {
+            console.log('Messages page unmounting, resetting state');
+            // Reset conversation-related state to prevent persistence
+            // Note: This will be handled by the store's selectConversation(null) or similar
+            // For now, we'll rely on proper unmounting and socket cleanup
+        };
+    }, []);
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
@@ -104,13 +138,40 @@ export default function MessagesPage() {
     const activeConversation = conversations.find(c => c._id === selectedConversation);
     const activeOther = activeConversation ? getOtherParticipant(activeConversation) : null;
 
-    const sortedConversations = [...conversations].sort((a, b) => {
-        const aTime = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const bTime = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-        return bTime - aTime; // latest first
-    });
+    // Robust ID helpers to avoid left/right bubble glitches
+    const getIdSafe = (entity) => {
+        if (!entity) return '';
+        if (typeof entity === 'string') return entity;
+        return (entity._id || entity.id || '').toString();
+    };
+    const myId = getIdSafe(user);
+    const isFromMe = (msg) => getIdSafe(msg.sender) === myId;
 
-    if (!isAuthenticated) {
+    // Stable conversation sorting: latest at top using lastMessage.createdAt or updatedAt
+    const sortedConversations = useMemo(() => {
+        return [...conversations].sort((a, b) => {
+            const aTime = a.lastMessage?.createdAt
+                ? new Date(a.lastMessage.createdAt).getTime()
+                : a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const bTime = b.lastMessage?.createdAt
+                ? new Date(b.lastMessage.createdAt).getTime()
+                : b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            return bTime - aTime;
+        });
+    }, [conversations]);
+
+    if (!authReady) {
+        return (
+            <>
+                <Navbar />
+                <div style={styles.loginPrompt}>
+                    <p>Preparing your messages...</p>
+                </div>
+            </>
+        );
+    }
+
+    if (!isAuthenticated || !accessToken) {
         return (
             <>
                 <Navbar />
@@ -129,8 +190,10 @@ export default function MessagesPage() {
                     {/* Conversations List */}
                     <div style={styles.conversationsContainer}>
                         <h3 style={styles.conversationsHeader}>Your Conversations</h3>
-                        {conversationsLoading && <p style={styles.loadingText}>Loading conversations...</p>}
-                        {conversationsError && <p style={styles.errorText}>{conversationsError}</p>}
+                        {authReady && conversationsError && <p style={styles.errorText}>{conversationsError}</p>}
+                        {conversationsLoading && (
+                            <div style={styles.loadingOverlay}>Loading…</div>
+                        )}
                         {!conversationsLoading && conversations.length === 0 && <p style={styles.noConversationsText}>No conversations yet.</p>}
                         <div style={styles.conversationsList}>
                             {sortedConversations.map((conversation) => {
@@ -184,11 +247,11 @@ export default function MessagesPage() {
                                                 key={message._id}
                                                 style={{
                                                     ...styles.messageBubble,
-                                                    ...(message.sender._id === user._id ? styles.messageBubbleSent : styles.messageBubbleReceived),
+                                                    ...(isFromMe(message) ? styles.messageBubbleSent : styles.messageBubbleReceived),
                                                 }}
                                             >
                                                 <div style={styles.messageContent}>{message.content}</div>
-                                                <div style={message.sender._id === user._id ? styles.messageTime : { ...styles.messageTime, ...styles.messageTimeReceived }}>
+                                                <div style={isFromMe(message) ? styles.messageTime : { ...styles.messageTime, ...styles.messageTimeReceived }}>
                                                     {new Date(message.createdAt).toLocaleString()}
                                                 </div>
                                             </div>
@@ -241,7 +304,7 @@ const styles = {
         alignItems: "flex-start",
         padding: "88px 32px 32px",
         boxSizing: "border-box",
-        border: "1px solid black",
+        // border: "1px solid black",
         borderRadius: "14px",
     },
     mainContainer: {
@@ -252,7 +315,7 @@ const styles = {
         display: "grid",
         gridTemplateColumns: "360px 1fr",
         gap: "20px",
-        border: "1px solid black",
+        // border: "1px solid black",
         borderRadius: "14px",
         boxSizing: "border-box",
     },
@@ -288,8 +351,7 @@ const styles = {
         display: "grid",
         gridTemplateRows: "auto 1fr",
         overflow: "hidden",
-        border: "1px solid #e2e8f0",
-        borderRadius: "14px",
+        position: "relative",
     },
     conversationsList: {
         display: "flex",
@@ -297,6 +359,19 @@ const styles = {
         gap: "10px",
         overflowY: "auto",
         justifyContent: "flex-start",
+    },
+    loadingOverlay: {
+        position: "absolute",
+        top: "12px",
+        right: "16px",
+        background: "rgba(255,255,255,0.9)",
+        border: "1px solid #e2e8f0",
+        borderRadius: "10px",
+        padding: "6px 10px",
+        fontSize: "12px",
+        color: "#64748b",
+        pointerEvents: "none",
+        boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
     },
     conversationsHeader: {
         fontSize: "16px",

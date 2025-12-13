@@ -49,6 +49,15 @@ const styles = {
 };
 
 export function Header({ onMenuClick }) {
+  const [isDesktop, setIsDesktop] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const setVal = () => setIsDesktop(mq.matches);
+    setVal();
+    mq.addEventListener?.('change', setVal);
+    return () => mq.removeEventListener?.('change', setVal);
+  }, []);
+
   return (
     <header style={styles.header}>
       {/* LEFT SIDE: Logo + Title */}
@@ -58,13 +67,15 @@ export function Header({ onMenuClick }) {
       </div>
 
       {/* MENU BUTTON (Mobile Only) */}
-      <button
-        style={styles.menuButton}
-        onClick={onMenuClick}
-        className="dashboard-menu-btn"
-      >
-        <Menu size={22} />
-      </button>
+      {!isDesktop && (
+        <button
+          style={styles.menuButton}
+          onClick={onMenuClick}
+          className="dashboard-menu-btn"
+        >
+          <Menu size={22} />
+        </button>
+      )}
     </header>
   );
 }

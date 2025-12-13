@@ -1,19 +1,9 @@
 // FILE: PrivacySettings.jsx
 
-import React, { useState } from "react";
+import React from "react";
 
-export default function PrivacySettings() {
-  const [settings, setSettings] = useState({
-    profileVisible: true,
-    activityStatus: true,
-    searchEngineListing: false,
-    dataDownload: false,
-    personalizedAds: true,
-  });
-
-  const toggle = (key) => {
-    setSettings((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+export default function PrivacySettings({ settings, onToggle }) {
+  const data = settings || {};
 
   const styles = {
     card: {
@@ -91,40 +81,40 @@ export default function PrivacySettings() {
       {/* Profile Visibility */}
       <div style={styles.option}>
         <span style={styles.label}>Show my profile publicly</span>
-        <div onClick={() => toggle("profileVisible")}>
-          <Switch active={settings.profileVisible} />
+        <div onClick={() => onToggle("profileVisible")}>
+          <Switch active={!!data.profileVisible} />
         </div>
       </div>
 
       {/* Activity Status */}
       <div style={styles.option}>
         <span style={styles.label}>Show activity status</span>
-        <div onClick={() => toggle("activityStatus")}>
-          <Switch active={settings.activityStatus} />
+        <div onClick={() => onToggle("activityStatus")}>
+          <Switch active={!!data.activityStatus} />
         </div>
       </div>
 
       {/* Search Engine Listing */}
       <div style={styles.option}>
         <span style={styles.label}>Allow search engines to show my profile</span>
-        <div onClick={() => toggle("searchEngineListing")}>
-          <Switch active={settings.searchEngineListing} />
+        <div onClick={() => onToggle("searchEngineListing")}>
+          <Switch active={!!data.searchEngineListing} />
         </div>
       </div>
 
       {/* Data Download */}
       <div style={styles.option}>
         <span style={styles.label}>Allow data download request</span>
-        <div onClick={() => toggle("dataDownload")}>
-          <Switch active={settings.dataDownload} />
+        <div onClick={() => onToggle("dataDownload")}>
+          <Switch active={!!data.dataDownload} />
         </div>
       </div>
 
       {/* Personalized Ads */}
       <div style={styles.option}>
         <span style={styles.label}>Enable personalized ads</span>
-        <div onClick={() => toggle("personalizedAds")}>
-          <Switch active={settings.personalizedAds} />
+        <div onClick={() => onToggle("personalizedAds")}>
+          <Switch active={!!data.personalizedAds} />
         </div>
       </div>
     </div>

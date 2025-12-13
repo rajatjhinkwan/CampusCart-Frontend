@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
 // Assuming Lucide icons are available
 import {
   Plus, Eye, MessageCircle, Edit3, Link,
@@ -6,6 +8,10 @@ import {
 } from "lucide-react";
 
 function Card12() {
+  const navigate = useNavigate();
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const styles = {
     // --- Container Styles ---
     container: {
@@ -251,48 +257,34 @@ function Card12() {
     );
   };
 
-  const listings = [
-    {
-      img: "https://images.unsplash.com/photo-1695041214514-87c1577a5c61?w=150&q=80",
-      title: "iPhone 15 Pro Max",
-      category: "Electronics",
-      date: "Sep 25, 2025",
-      price: "₹1,19,999",
-      views: 245,
-      messages: 12,
-      status: "Active",
-    },
-    {
-      img: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=150&q=80",
-      title: "2019 Honda Civic",
-      category: "Vehicles",
-      date: "Sep 23, 2025",
-      price: "₹18,50,000",
-      views: 189,
-      messages: 8,
-      status: "Active",
-    },
-    {
-      img: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=150&q=80",
-      title: "Modern 2BR Apartment",
-      category: "Property",
-      date: "Sep 22, 2025",
-      price: "₹2,80,000",
-      views: 156,
-      messages: 15,
-      status: "Pending",
-    },
-    {
-      img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=150&q=80",
-      title: "MacBook Pro 16-inch",
-      category: "Electronics",
-      date: "Sep 20, 2025",
-      price: "₹2,39,999",
-      views: 98,
-      messages: 6,
-      status: "Sold",
-    },
-  ];
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const token = localStorage.getItem("accessToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get("http://localhost:5000/api/products/my-products", { headers });
+        const products = res.data?.products || [];
+        const mapped = products.map((p) => ({
+          img: Array.isArray(p.images) && p.images[0]?.url ? p.images[0].url : "https://via.placeholder.com/56",
+          title: p.title || "Untitled",
+          category: p.category?.name || p.category || "Unknown",
+          date: p.createdAt ? new Date(p.createdAt).toLocaleDateString() : "",
+          price: typeof p.price === "number" ? `₹${p.price}` : (p.price || "₹0"),
+          views: typeof p.views === "number" ? p.views : 0,
+          messages: 0,
+          status: p.isSold ? "Sold" : "Active",
+        }));
+        setItems(mapped);
+      } catch (e) {
+        setError(e?.response?.data?.message || e?.message || "Failed to load your listings");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, []);
 
   return (
     <div style={styles.container}>
@@ -302,9 +294,16 @@ function Card12() {
           <h2 style={styles.title}>Listing Overview</h2>
           <span style={styles.subtitle}>Manage your active and past listings</span>
         </div>
-        <button style={styles.button}>
-          <Plus size={18} /> Create Listing
-        </button>
+        <div style={{ display: "flex", gap: "10px" }}>
+          <button style={styles.button} onClick={() => navigate('/sell-item')}>
+            <Plus size={18} /> Create Listing
+          </button>
+          {items.length > 4 && (
+            <button style={styles.button} onClick={() => navigate('/user-listings')}>
+              View All
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Table */}
@@ -314,13 +313,22 @@ function Card12() {
             <tr>
               <th style={{ ...styles.th, width: "40%" }}>Item Details</th>
               <th style={{ ...styles.th, width: "15%" }}>Price</th>
-              <th style={{ ...styles.th, width: "20%" }}>Performance</th> {/* The Matrix Column */}
+              <th style={{ ...styles.th, width: "20%" }}>Performance</th>
               <th style={{ ...styles.th, width: "10%" }}>Status</th>
               <th style={{ ...styles.th, width: "15%", textAlign: "right" }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {listings.map((item, index) => (
+            {loading && (
+              <tr><td style={styles.td} colSpan={5}>Loading your listings…</td></tr>
+            )}
+            {!loading && error && (
+              <tr><td style={styles.td} colSpan={5}>{error}</td></tr>
+            )}
+            {!loading && items.length === 0 && (
+              <tr><td style={styles.td} colSpan={5}>No listings yet</td></tr>
+            )}
+            {!loading && items.slice(0, 4).map((item, index) => (
               <tr key={index}>
                 {/* Item Details */}
                 <td style={styles.td}>

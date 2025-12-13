@@ -1,20 +1,17 @@
-import React, { useState } from "react";
+import React from "react";
 
-const NotificationsTabs = () => {
-    const [activeTab, setActiveTab] = useState("all");
-
+const NotificationsTabs = ({ active, onChange }) => {
     const tabs = ["all", "unread", "read"];
-
     return (
         <div style={styles.container}>
             {tabs.map((tab) => (
                 <button
                     key={tab}
-                    onClick={() => setActiveTab(tab)}
+                    onClick={() => onChange(tab)}
                     style={{
                         ...styles.tab,
-                        backgroundColor: activeTab === tab ? "#007bff" : "white",
-                        color: activeTab === tab ? "white" : "black",
+                        backgroundColor: active === tab ? "#1e3a8a" : "white",
+                        color: active === tab ? "white" : "black",
                     }}
                 >
                     {tab.toUpperCase()}

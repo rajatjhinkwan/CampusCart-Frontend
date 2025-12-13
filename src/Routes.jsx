@@ -17,6 +17,7 @@ import Testlocation from "./testlocation";
 import Notifications from "./pages/notifications";
 import MyListings from "./pages/mylistings";
 import SettingsComp from "./pages/settings";
+import WishlistPage from "./pages/wishlist";
 import SellItem from "./pages/sell-item";
 import RoomPage from "./pages/roomPage"
 import ServicePage from "./pages/services"
@@ -45,6 +46,9 @@ import CookiePolicy from "./pages/support/CookiePolicy";
 import { Settings } from "lucide-react";
 // In your router configuration (e.g., App.js or Routes.js)
 import TestNotifications from './pages/TestNotifications';
+import Rides from './pages/rides';
+import PromotionsPage from "./pages/promotions";
+import NotificationDetail from "./pages/notifications/NotificationDetail.jsx";
 
 // Add this to your routes
 const Routes = () => {
@@ -70,6 +74,7 @@ const Routes = () => {
           <Route path="/testlocation" element={<Testlocation />} />
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/user-listings" element={<MyListings />} />
+          <Route path="/user-favorites" element={<WishlistPage />} />
           <Route path="/settings" element={<SettingsComp />} />
           <Route path="/sell-item" element={<SellItem />} />
           <Route path="/product/:id" element={<ProductPage />} />
@@ -77,6 +82,9 @@ const Routes = () => {
           <Route path="/rooms/:id" element={<RoomPage />} />
           <Route path="/services/:id" element={<ServicePage />} />
           <Route path="/jobs/:id" element={<JobsPage />} />
+          <Route path="/rides" element={<Rides />} />
+          <Route path="/promotions" element={<PromotionsPage />} />
+          <Route path="/notifications/:id" element={<NotificationDetail />} />
 
 
           <Route path="/how-to-buy" element={<HowToBuy />} />

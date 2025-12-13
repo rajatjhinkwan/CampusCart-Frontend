@@ -1,38 +1,39 @@
 import React from "react";
-import { Package, MessageCircle, Eye, TrendingUp } from "lucide-react"; // ✅ For icons
+import { Package, MessageCircle, Eye, TrendingUp } from "lucide-react";
 
-const DashboardMetrics = () => {
-  // All data and text in one place
-  const metricsData = [
-    {
-      title: "Total Ads",
-      value: "24",
-      change: "+3 this month",
-      icon: <Package color="#3b82f6" size={24} />,
-      iconBg: "#e0edff",
-    },
-    {
-      title: "Messages",
-      value: "156",
-      change: "+12 this month",
-      icon: <MessageCircle color="#22c55e" size={24} />,
-      iconBg: "#d1fae5",
-    },
-    {
-      title: "Profile Views",
-      value: "1,247",
-      change: "+89 this month",
-      icon: <Eye color="#a855f7" size={24} />,
-      iconBg: "#f3e8ff",
-    },
-    {
-      title: "Successful Sales",
-      value: "18",
-      change: "+2 this month",
-      icon: <TrendingUp color="#10b981" size={24} />,
-      iconBg: "#dcfce7",
-    },
+const DashboardMetrics = ({ metricsData }) => {
+  const defaults = [
+    { title: "Total Ads", value: "0", change: "", icon: <Package color="#3b82f6" size={24} />, iconBg: "#e0edff" },
+    { title: "Messages", value: "0", change: "", icon: <MessageCircle color="#22c55e" size={24} />, iconBg: "#d1fae5" },
+    { title: "Profile Views", value: "0", change: "", icon: <Eye color="#a855f7" size={24} />, iconBg: "#f3e8ff" },
+    { title: "Successful Sales", value: "0", change: "", icon: <TrendingUp color="#10b981" size={24} />, iconBg: "#dcfce7" },
   ];
+
+  const fallbackByTitle = (title) => {
+    switch (title) {
+      case "Total Ads":
+        return { icon: <Package color="#3b82f6" size={24} />, iconBg: "#e0edff" };
+      case "Messages":
+        return { icon: <MessageCircle color="#22c55e" size={24} />, iconBg: "#d1fae5" };
+      case "Profile Views":
+        return { icon: <Eye color="#a855f7" size={24} />, iconBg: "#f3e8ff" };
+      case "Successful Sales":
+        return { icon: <TrendingUp color="#10b981" size={24} />, iconBg: "#dcfce7" };
+      default:
+        return { icon: null, iconBg: "#f3f4f6" };
+    }
+  };
+
+  const data = Array.isArray(metricsData) && metricsData.length
+    ? metricsData.map((m) => {
+        const fb = fallbackByTitle(m.title);
+        return {
+          ...m,
+          icon: m.icon ?? fb.icon,
+          iconBg: m.iconBg ?? fb.iconBg,
+        };
+      })
+    : defaults;
 
   // Styling objects
   const containerStyle = {
@@ -93,7 +94,7 @@ const DashboardMetrics = () => {
   // Component rendering
   return (
     <div style={containerStyle}>
-      {metricsData.map((metric, index) => (
+      {data.map((metric, index) => (
         <div
           key={index}
           style={cardStyle}
@@ -102,8 +103,8 @@ const DashboardMetrics = () => {
         >
           <div>
             <p style={titleStyle}>{metric.title}</p>
-            <h2 style={valueStyle}>{metric.value}</h2>
-            <p style={changeStyle}>{metric.change}</p>
+            <h2 style={valueStyle}>{metric.value || "0"}</h2>
+            <p style={changeStyle}>{metric.change || ""}</p>
           </div>
           <div style={iconBox(metric.iconBg)}>{metric.icon}</div>
         </div>

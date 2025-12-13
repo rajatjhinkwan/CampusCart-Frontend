@@ -7,14 +7,14 @@ const styles = {
     backgroundColor: "#fff",
     borderRadius: 12,
     border: "1px solid #e5e7eb",
-    padding: "20px",
+    padding: 16,
     height: "100%",
-    minHeight: 340,
+    minHeight: 320,
     display: "flex",
     flexDirection: "column",
   },
   title: {
-    marginBottom: 12,
+    marginBottom: 10,
     fontSize: 18,
     fontWeight: 600,
     color: "#111827",
@@ -22,8 +22,8 @@ const styles = {
   activityList: {
     display: "flex",
     flexDirection: "column",
-    gap: 16,
-    marginTop: 8,
+    gap: 14,
+    marginTop: 6,
   },
   activityItem: {
     display: "flex",

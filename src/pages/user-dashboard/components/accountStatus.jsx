@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 // Ensure you have lucide-react installed
 import {
   CheckCircle2, Crown, Star, ChevronRight,
@@ -6,6 +7,9 @@ import {
 } from "lucide-react";
 
 const AccountStatus = () => {
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const styles = {
     // --- Container ---
     container: {
@@ -240,8 +244,28 @@ const AccountStatus = () => {
     }
   };
 
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const token = localStorage.getItem("accessToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get("http://localhost:5000/api/users/account-metrics", { headers });
+        setMetrics(res.data || null);
+      } catch (e) {
+        setError(e?.response?.data?.message || e?.message || "Failed to load account metrics");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, []);
+
   return (
     <div style={styles.container}>
+      {loading && <div style={{ marginBottom: "12px", color: "#64748b" }}>Loading account metrics…</div>}
+      {!loading && error && <div style={{ marginBottom: "12px", color: "#ef4444" }}>{error}</div>}
       <div style={styles.header}>
         <div style={styles.title}>Account Overview</div>
         <div style={styles.subTitle}>Manage your status and performance</div>
@@ -283,16 +307,16 @@ const AccountStatus = () => {
       <div style={styles.statsGrid}>
         <div style={styles.statBox}>
           <div style={styles.statNumber}>
-            4.8 <Star size={14} fill="#fbbf24" color="#fbbf24" />
+            {(metrics?.trustScore ?? 0)} <Star size={14} fill="#fbbf24" color="#fbbf24" />
           </div>
           <div style={styles.statLabel}>Trust Score</div>
         </div>
         <div style={styles.statBox}>
-          <div style={styles.statNumber}>18</div>
+          <div style={styles.statNumber}>{metrics?.activeAds ?? 0}</div>
           <div style={styles.statLabel}>Active Ads</div>
         </div>
         <div style={styles.statBox}>
-          <div style={styles.statNumber}>98%</div>
+          <div style={styles.statNumber}>{typeof metrics?.responseRate === 'number' ? `${metrics.responseRate}%` : '0%'}</div>
           <div style={styles.statLabel}>Response</div>
         </div>
       </div>

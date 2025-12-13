@@ -15,14 +15,14 @@ const styles = {
     backgroundColor: '#fff',
     borderRadius: 12,
     border: '1px solid #e5e7eb',
-    padding: '20px',
+    padding: 16,
     height: '100%',
-    minHeight: 340,
+    minHeight: 320,
     display: 'flex',
     flexDirection: 'column',
   },
   title: {
-    marginBottom: 12,
+    marginBottom: 10,
     fontSize: 18,
     fontWeight: 600,
     color: '#111827',
@@ -47,7 +47,7 @@ export function SalesChart() {
 
       <div style={{ flex: 1 }}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 10, right: 14, left: -18, bottom: 0 }}>
+          <LineChart data={data} margin={{ top: 10, right: 8, left: 8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
             <XAxis dataKey="name" stroke="#9ca3af" style={{ fontSize: 12 }} />
             <YAxis stroke="#9ca3af" style={{ fontSize: 12 }} />

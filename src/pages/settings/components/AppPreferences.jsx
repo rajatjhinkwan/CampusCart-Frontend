@@ -1,15 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function AppPreferences() {
-  const [prefs, setPrefs] = useState({
-    darkMode: false,
-    compactView: false,
-    autoPlayVideos: true,
-    language: "English",
-  });
+export default function AppPreferences({ prefs, onChange }) {
+  const data = prefs || {};
 
   const toggle = (key) => {
-    setPrefs({ ...prefs, [key]: !prefs[key] });
+    onChange({ ...data, [key]: !data[key] });
   };
 
   return (
@@ -21,8 +16,8 @@ export default function AppPreferences() {
       <div style={styles.field}>
         <label style={styles.label}>Language</label>
         <select
-          value={prefs.language}
-          onChange={(e) => setPrefs({ ...prefs, language: e.target.value })}
+          value={data.language || "English"}
+          onChange={(e) => onChange({ ...data, language: e.target.value })}
           style={styles.select}
         >
           <option>English</option>
@@ -37,7 +32,7 @@ export default function AppPreferences() {
         <span style={styles.label}>Dark Mode</span>
         <input
           type="checkbox"
-          checked={prefs.darkMode}
+          checked={!!data.darkMode}
           onChange={() => toggle("darkMode")}
           style={styles.checkbox}
         />
@@ -48,7 +43,7 @@ export default function AppPreferences() {
         <span style={styles.label}>Compact View</span>
         <input
           type="checkbox"
-          checked={prefs.compactView}
+          checked={!!data.compactView}
           onChange={() => toggle("compactView")}
           style={styles.checkbox}
         />
@@ -59,7 +54,7 @@ export default function AppPreferences() {
         <span style={styles.label}>Auto-play listing videos</span>
         <input
           type="checkbox"
-          checked={prefs.autoPlayVideos}
+          checked={!!data.autoPlayVideos}
           onChange={() => toggle("autoPlayVideos")}
           style={styles.checkbox}
         />

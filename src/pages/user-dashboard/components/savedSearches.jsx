@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 // Assuming Lucide icons are available
 import {
   Plus, Search, MapPin, Clock, Settings,
@@ -6,6 +7,9 @@ import {
 } from "lucide-react";
 
 const SavedSearches = () => {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const styles = {
     // --- Main Container ---
     container: {
@@ -233,52 +237,35 @@ const SavedSearches = () => {
     }
   };
 
-  const listings = [
-    {
-      name: "iPhone 15 Pro",
-      tag: "Electronics",
-      location: "New York, NY",
-      price: "800 - 1,200",
-      results: "23",
-      updated: "1h ago",
-      newBadge: "NEW",
-      alerts: "on",
-      imageUrl: "https://images.unsplash.com/photo-1695041214514-87c1577a5c61?w=100&q=80",
-    },
-    {
-      name: "Honda Civic 2022",
-      tag: "Vehicles",
-      location: "Los Angeles, CA",
-      price: "15k - 25k",
-      results: "45",
-      updated: "2h ago",
-      newBadge: "7 NEW",
-      alerts: "on",
-      imageUrl: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?w=100&q=80",
-    },
-    {
-      name: "2BR Apartment",
-      tag: "Property",
-      location: "Chicago, IL",
-      price: "2k - 3k/mo",
-      results: "12",
-      updated: "1d ago",
-      newBadge: "",
-      alerts: "off",
-      imageUrl: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=100&q=80",
-    },
-    {
-      name: "MacBook Pro M3",
-      tag: "Electronics",
-      location: "Houston, TX",
-      price: "1,500 - 2,500",
-      results: "18",
-      updated: "3h ago",
-      newBadge: "",
-      alerts: "on",
-      imageUrl: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=100&q=80",
-    },
-  ];
+  useEffect(() => {
+    const run = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const token = localStorage.getItem("accessToken");
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await axios.get("http://localhost:5000/api/wishlist/me", { headers });
+        const wishlist = res.data?.wishlist?.products || [];
+        const mapped = wishlist.map((p) => ({
+          name: p.title || "Untitled",
+          tag: p.category?.name || p.category || "Unknown",
+          location: p.location || "",
+          price: typeof p.price === "number" ? `₹${p.price}` : (p.price || "₹0"),
+          results: p.views ? String(p.views) : "0",
+          updated: p.updatedAt ? new Date(p.updatedAt).toLocaleString() : (p.createdAt ? new Date(p.createdAt).toLocaleString() : ""),
+          newBadge: p.createdAt && Date.now() - new Date(p.createdAt).getTime() < 7 * 24 * 3600 * 1000 ? "NEW" : "",
+          alerts: "on",
+          imageUrl: Array.isArray(p.images) && p.images[0]?.url ? p.images[0].url : "https://via.placeholder.com/64",
+        }));
+        setItems(mapped);
+      } catch (e) {
+        setError(e?.response?.data?.message || e?.message || "Failed to load favorites");
+      } finally {
+        setLoading(false);
+      }
+    };
+    run();
+  }, []);
 
   return (
     <div style={styles.container}>
@@ -302,7 +289,16 @@ const SavedSearches = () => {
       </div>
 
       {/* Rows */}
-      {listings.map((item, index) => (
+      {loading && (
+        <div style={styles.row}><div style={{ color: "#64748b" }}>Loading favorites…</div></div>
+      )}
+      {!loading && error && (
+        <div style={styles.row}><div style={{ color: "#ef4444" }}>{error}</div></div>
+      )}
+      {!loading && !error && items.length === 0 && (
+        <div style={styles.row}><div style={{ color: "#64748b" }}>No favorites yet</div></div>
+      )}
+      {!loading && !error && items.slice(0, 4).map((item, index) => (
         <div key={index} style={styles.row}>
 
           {/* COLUMN 1: Product Info */}

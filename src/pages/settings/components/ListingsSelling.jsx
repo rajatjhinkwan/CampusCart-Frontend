@@ -1,6 +1,11 @@
 import React from "react";
 
-export default function ListingsSelling() {
+export default function ListingsSelling({ sellingPrefs, onChange }) {
+  const prefs = sellingPrefs || {};
+
+  const toggle = (key) => {
+    onChange({ ...prefs, [key]: !prefs[key] });
+  };
   return (
     <div style={styles.container}>
       <h2 style={styles.title}>Listings & Selling</h2>
@@ -48,7 +53,26 @@ export default function ListingsSelling() {
         ].map((label, index) => (
           <div key={index} style={styles.preferenceRow}>
             <span style={styles.prefLabel}>{label}</span>
-            <input type="checkbox" style={styles.checkbox} />
+            <input
+              type="checkbox"
+              style={styles.checkbox}
+              checked={
+                label === "Auto-renew listings"
+                  ? !!prefs.autoRenewListings
+                  : label === "Enable buyer offer requests"
+                  ? !!prefs.enableOfferRequests
+                  : !!prefs.promoteListings
+              }
+              onChange={() =>
+                toggle(
+                  label === "Auto-renew listings"
+                    ? "autoRenewListings"
+                    : label === "Enable buyer offer requests"
+                    ? "enableOfferRequests"
+                    : "promoteListings"
+                )
+              }
+            />
           </div>
         ))}
       </div>

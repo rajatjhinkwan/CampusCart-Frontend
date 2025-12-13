@@ -1,12 +1,8 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function SecuritySettings() {
-  const [twoFactor, setTwoFactor] = useState(false);
-  const [passwordForm, setPasswordForm] = useState({
-    current: "",
-    newPass: "",
-    confirm: "",
-  });
+export default function SecuritySettings({ data, onChange }) {
+  const twoFactor = data?.twoFactor || false;
+  const passwordForm = data?.password || { current: "", newPass: "", confirm: "" };
 
   const container = {
     background: "#fff",
@@ -91,7 +87,10 @@ export default function SecuritySettings() {
           style={input}
           value={passwordForm.current}
           onChange={(e) =>
-            setPasswordForm({ ...passwordForm, current: e.target.value })
+            onChange({
+              ...data,
+              password: { ...passwordForm, current: e.target.value },
+            })
           }
         />
 
@@ -101,7 +100,10 @@ export default function SecuritySettings() {
           style={input}
           value={passwordForm.newPass}
           onChange={(e) =>
-            setPasswordForm({ ...passwordForm, newPass: e.target.value })
+            onChange({
+              ...data,
+              password: { ...passwordForm, newPass: e.target.value },
+            })
           }
         />
 
@@ -111,7 +113,10 @@ export default function SecuritySettings() {
           style={input}
           value={passwordForm.confirm}
           onChange={(e) =>
-            setPasswordForm({ ...passwordForm, confirm: e.target.value })
+            onChange({
+              ...data,
+              password: { ...passwordForm, confirm: e.target.value },
+            })
           }
         />
       </div>
@@ -125,7 +130,7 @@ export default function SecuritySettings() {
 
         <div
           style={toggleRow}
-          onClick={() => setTwoFactor(!twoFactor)}
+          onClick={() => onChange({ ...data, twoFactor: !twoFactor })}
         >
           <span style={{ fontSize: "15px", fontWeight: "500" }}>
             Enable Two-Factor

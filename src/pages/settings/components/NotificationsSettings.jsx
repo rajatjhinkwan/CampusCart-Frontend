@@ -1,16 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 
-export default function NotificationsSettings() {
-  const [prefs, setPrefs] = useState({
-    newMessage: true,
-    productSold: true,
-    priceDrop: false,
-    newOffer: true,
-    appUpdates: false,
-  });
+export default function NotificationsSettings({ prefs, onChange }) {
+  const data = prefs || {};
 
   const toggle = (key) => {
-    setPrefs({ ...prefs, [key]: !prefs[key] });
+    onChange({ ...data, [key]: !data[key] });
   };
 
   return (
@@ -26,7 +20,7 @@ export default function NotificationsSettings() {
         </div>
         <input
           type="checkbox"
-          checked={prefs.newMessage}
+          checked={!!data.newMessage}
           onChange={() => toggle("newMessage")}
           style={styles.checkbox}
         />
@@ -40,7 +34,7 @@ export default function NotificationsSettings() {
         </div>
         <input
           type="checkbox"
-          checked={prefs.productSold}
+          checked={!!data.productSold}
           onChange={() => toggle("productSold")}
           style={styles.checkbox}
         />
@@ -54,7 +48,7 @@ export default function NotificationsSettings() {
         </div>
         <input
           type="checkbox"
-          checked={prefs.priceDrop}
+          checked={!!data.priceDrop}
           onChange={() => toggle("priceDrop")}
           style={styles.checkbox}
         />
@@ -68,7 +62,7 @@ export default function NotificationsSettings() {
         </div>
         <input
           type="checkbox"
-          checked={prefs.newOffer}
+          checked={!!data.newOffer}
           onChange={() => toggle("newOffer")}
           style={styles.checkbox}
         />
@@ -82,7 +76,7 @@ export default function NotificationsSettings() {
         </div>
         <input
           type="checkbox"
-          checked={prefs.appUpdates}
+          checked={!!data.appUpdates}
           onChange={() => toggle("appUpdates")}
           style={styles.checkbox}
         />
