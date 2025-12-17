@@ -1,16 +1,16 @@
 import React from "react";
-import useUserStore from "../../store/userStore";
+import { useUserStore } from "../../store/userStore";
 import { useNavigate } from "react-router-dom";
 
 // Ensure you have installed: npm install react-icons
-import { 
-  MdDashboard, 
-  MdMailOutline, 
-  MdPersonOutline, 
-  MdListAlt, 
-  MdFavoriteBorder, 
-  MdSettings, 
-  MdExitToApp 
+import {
+  MdDashboard,
+  MdMailOutline,
+  MdPersonOutline,
+  MdListAlt,
+  MdFavoriteBorder,
+  MdSettings,
+  MdExitToApp
 } from 'react-icons/md';
 
 function Profile() {
@@ -28,8 +28,8 @@ function Profile() {
   const styles = {
     container: {
       backgroundColor: "#ffffff",
-      color: "#1f2937", 
-      width: "350px", 
+      color: "#1f2937",
+      width: "350px",
       padding: "20px", // Reduced container padding
       borderRadius: "16px", // Slightly smaller border radius
       fontFamily: "'Inter', sans-serif",
@@ -58,7 +58,7 @@ function Profile() {
       boxShadow: "0 3px 8px rgba(99, 102, 241, 0.2)",
     },
     verified: {
-      color: "#10b981", 
+      color: "#10b981",
       fontSize: "13px", // Slightly smaller font
       marginLeft: "8px", // Reduced margin
       fontWeight: "600",
@@ -79,15 +79,15 @@ function Profile() {
       display: "flex",
       alignItems: "center",
       padding: "12px 10px", // Key change: Reduced vertical padding (was 16px)
-      borderRadius: "8px", 
-      borderBottom: "1px solid #f3f4f6", 
+      borderRadius: "8px",
+      borderBottom: "1px solid #f3f4f6",
       cursor: "pointer",
       transition: "background-color 0.2s ease, transform 0.1s ease",
     },
     menuIcon: {
       fontSize: "20px", // Slightly smaller icons
       marginRight: "12px", // Reduced margin
-      color: "#6366f1", 
+      color: "#6366f1",
       minWidth: "22px", // Consistent width
       display: "flex",
       alignItems: "center",
@@ -109,8 +109,8 @@ function Profile() {
       marginTop: "2px", // Reduced margin
     },
     badge: {
-      backgroundColor: "#ef4444", 
-      borderRadius: "10px", 
+      backgroundColor: "#ef4444",
+      borderRadius: "10px",
       minWidth: "20px",
       height: "20px",
       color: "#fff",
@@ -123,16 +123,16 @@ function Profile() {
       marginLeft: "10px",
     },
     chevron: {
-        color: "#cbd5e1", 
-        fontSize: "16px", // Smaller chevron
-        marginLeft: "10px",
+      color: "#cbd5e1",
+      fontSize: "16px", // Smaller chevron
+      marginLeft: "10px",
     },
     signOut: {
       marginTop: "15px", // Reduced margin
       paddingTop: "15px", // Reduced padding
       borderTop: "1px solid #e2e8f0",
-      fontSize: "16px", 
-      color: "#ef4444", 
+      fontSize: "16px",
+      color: "#ef4444",
       fontWeight: "600",
       cursor: "pointer",
       display: "flex",
@@ -168,7 +168,7 @@ function Profile() {
       </div>
 
       {/* Menu Items */}
-      <div style={{...styles.menuItem, borderTop: "1px solid #f3f4f6"}} onClick={() => navigate('/user-dashboard')}>
+      <div style={{ ...styles.menuItem, borderTop: "1px solid #f3f4f6" }} onClick={() => navigate('/user-dashboard')}>
         <div style={styles.menuIcon}><MdDashboard /></div>
         <div style={styles.menuText}>
           <span style={styles.mainText} >Dashboard</span>
@@ -176,6 +176,16 @@ function Profile() {
         </div>
         <span style={styles.chevron}>&gt;</span>
       </div>
+      {user?.role === 'admin' && (
+        <div style={styles.menuItem} onClick={() => navigate('/admin-dashboard')}>
+          <div style={styles.menuIcon}><MdDashboard /></div>
+          <div style={styles.menuText}>
+            <span style={styles.mainText}>Admin Dashboard</span>
+            <span style={styles.subText}>Manage users & reports</span>
+          </div>
+          <span style={styles.chevron}>&gt;</span>
+        </div>
+      )}
 
       <div style={styles.menuItem} onClick={() => navigate('/user-messages')}>
         <div style={styles.menuIcon}><MdMailOutline /></div>
@@ -213,7 +223,7 @@ function Profile() {
         <div style={styles.badge}>1</div>
       </div>
 
-      <div style={{...styles.menuItem, borderBottom: 'none'}} onClick={() => navigate('/settings')}>
+      <div style={{ ...styles.menuItem, borderBottom: 'none' }} onClick={() => navigate('/settings')}>
         <div style={styles.menuIcon}><MdSettings /></div>
         <div style={styles.menuText}>
           <span style={styles.mainText}>Settings</span>

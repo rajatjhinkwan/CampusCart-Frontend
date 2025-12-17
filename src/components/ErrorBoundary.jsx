@@ -24,7 +24,7 @@ function parseStack(stack) {
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, backendError: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -34,6 +34,19 @@ class ErrorBoundary extends React.Component {
   componentDidCatch(error, errorInfo) {
     this.setState({ error, errorInfo });
   }
+
+  componentDidMount() {
+    window.addEventListener("backend-error", this.handleBackendError);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener("backend-error", this.handleBackendError);
+  }
+
+  handleBackendError = (evt) => {
+    const detail = evt?.detail || {};
+    this.setState({ backendError: detail });
+  };
 
   // Copy stack, file, line, column, and message
   handleCopy = () => {
@@ -62,8 +75,96 @@ class ErrorBoundary extends React.Component {
     alert("Debug report copied to clipboard!");
   };
 
+  handleBackendCopy = () => {
+    const e = this.state.backendError || {};
+    const report = [
+      "🔥 Backend Error Report",
+      "-----------------------------------",
+      `Message   : ${e.message || ""}`,
+      `Status    : ${e.status || ""}`,
+      `Path      : ${e.path || ""}`,
+      `Method    : ${e.method || ""}`,
+      `RequestId : ${e.requestId || ""}`,
+      e.file ? `File      : ${e.file}` : "",
+      e.file ? `Line      : ${e.line}` : "",
+      e.file ? `Column    : ${e.column}` : "",
+      "",
+      "Copy Text",
+      e.copyText || "",
+    ].filter(Boolean).join("\n");
+    navigator.clipboard.writeText(report);
+    alert("Backend debug report copied to clipboard!");
+  };
+
   render() {
-    if (!this.state.hasError) return this.props.children;
+    const backendError = this.state.backendError;
+    if (!this.state.hasError) {
+      return (
+        <>
+          {this.props.children}
+          {backendError && (
+            <div
+              style={{
+                position: "fixed",
+                right: 20,
+                bottom: 20,
+                width: 360,
+                padding: "14px",
+                background: "#fff8e6",
+                border: "1px solid #e0a800",
+                borderRadius: "10px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                fontFamily: "monospace",
+                zIndex: 9999,
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <strong style={{ color: "#8a6d3b" }}>⚠ Backend Error</strong>
+                <button
+                  onClick={() => this.setState({ backendError: null })}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "#8a6d3b",
+                    cursor: "pointer",
+                    fontSize: 16,
+                  }}
+                >
+                  ✕
+                </button>
+              </div>
+              <div style={{ marginTop: 8, color: "#8a6d3b" }}>
+                <div style={{ fontWeight: "bold" }}>{backendError.message || "Request failed"}</div>
+                <div>Status: {backendError.status}</div>
+                <div>Path: {backendError.path}</div>
+                {backendError.file && (
+                  <div style={{ marginTop: 6 }}>
+                    <div>File: {backendError.file}</div>
+                    <div>Line: {backendError.line}</div>
+                    <div>Column: {backendError.column}</div>
+                  </div>
+                )}
+                {backendError.requestId && <div>RequestId: {backendError.requestId}</div>}
+              </div>
+              <button
+                onClick={this.handleBackendCopy}
+                style={{
+                  marginTop: 10,
+                  padding: "6px 10px",
+                  background: "#e0a800",
+                  color: "white",
+                  border: "none",
+                  cursor: "pointer",
+                  borderRadius: "6px",
+                }}
+              >
+                📋 Copy Backend Error
+              </button>
+            </div>
+          )}
+        </>
+      );
+    }
 
     const parsed = parseStack(this.state.error?.stack);
 

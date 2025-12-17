@@ -20,17 +20,12 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
   },
-  logo: {
+  brandLogo: {
     width: '34px',
     height: '34px',
     borderRadius: '8px',
-    backgroundColor: '#2563eb',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: '16px',
+    objectFit: 'cover',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
   },
   title: {
     fontSize: '20px',
@@ -62,7 +57,11 @@ export function Header({ onMenuClick }) {
     <header style={styles.header}>
       {/* LEFT SIDE: Logo + Title */}
       <div style={styles.left}>
-        <div style={styles.logo}>CC</div>
+        <img
+          src={import.meta.env.VITE_APP_LOGO_URL || "https://raw.githubusercontent.com/simple-icons/simple-icons/develop/icons/googlemessages.svg"}
+          alt="CampusHub"
+          style={styles.brandLogo}
+        />
         <span style={styles.title}>Campus Cart</span>
       </div>
 

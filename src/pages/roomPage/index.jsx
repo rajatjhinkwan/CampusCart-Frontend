@@ -1,22 +1,71 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "../../lib/axios";
+import { useUserStore } from "../../store/userStore";
+import toast from "react-hot-toast";
 
 const RoomDetails = () => {
-    const { id } = useParams(); // room _id from URL
+    const { id } = useParams();
+    const navigate = useNavigate();
+    const { isAuthenticated, startConversation } = useUserStore();
     const [room, setRoom] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [contactLoading, setContactLoading] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [reportMessage, setReportMessage] = useState("");
 
     useEffect(() => {
-        fetch(`http://localhost:5000/api/rooms/${id}`)
-            .then((res) => res.json())
-            .then((data) => {
-                setRoom(data.data);
+        axios.get(`/api/rooms/${id}`)
+            .then((res) => {
+                setRoom(res.data.data);
                 setLoading(false);
             });
     }, [id]);
 
     if (loading) return <div style={styles.loading}>Loading...</div>;
     if (!room) return <div style={styles.loading}>Room not found</div>;
+
+    const handleContact = async () => {
+        if (!isAuthenticated) {
+            toast.error("Please login to contact owner");
+            navigate("/login");
+            return;
+        }
+        const ownerId = room.seller?._id || room.seller;
+        if (!ownerId) {
+            toast.error("Owner info missing");
+            return;
+        }
+        
+        // Prevent chatting with self
+        const myId = useUserStore.getState().user?._id;
+        if (myId === ownerId) {
+            toast.error("You cannot chat with yourself");
+            return;
+        }
+
+        setContactLoading(true);
+        try {
+            const { success, conversationId, error } = await startConversation({
+                recipientId: ownerId,
+                productId: room._id,
+                contextType: "Room"
+            });
+            
+            if (success && conversationId) {
+                // Send initial inquiry message
+                await useUserStore.getState().sendMessage(conversationId, `Hi, is the room "${room.title}" still available?`);
+                navigate("/messages");
+            } else {
+                toast.error(error || "Failed to start chat");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong");
+        } finally {
+            setContactLoading(false);
+        }
+    };
 
     return (
         <div style={styles.page}>
@@ -39,8 +88,26 @@ const RoomDetails = () => {
                 {/* TITLE + PRICE */}
                 <div style={styles.header}>
                     <h1 style={styles.title}>{room.title}</h1>
-                    <div style={styles.priceBox}>
-                        ₹ {room.rent?.toLocaleString("en-IN") || "N/A"}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'flex-end' }}>
+                        <div style={styles.priceBox}>
+                            ₹ {room.rent?.toLocaleString("en-IN") || "N/A"}
+                        </div>
+                        <button 
+                            onClick={handleContact} 
+                            disabled={contactLoading}
+                            style={{
+                                padding: "10px 20px",
+                                background: "#2563eb",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "8px",
+                                cursor: contactLoading ? "not-allowed" : "pointer",
+                                fontWeight: "bold",
+                                opacity: contactLoading ? 0.7 : 1
+                            }}
+                        >
+                            {contactLoading ? "Processing..." : "Contact Owner"}
+                        </button>
                     </div>
                 </div>
 
@@ -86,6 +153,49 @@ const RoomDetails = () => {
                 <div style={styles.section}>
                     <h2 style={styles.subHeading}>Description</h2>
                     <p>{room.description || "No description available."}</p>
+                </div>
+
+                <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 8 }}>
+                    <div style={{ fontWeight: "bold", marginBottom: 8 }}>Report Room</div>
+                    <select
+                        value={reportReason}
+                        onChange={(e) => setReportReason(e.target.value)}
+                        style={{ width: "100%", padding: 8, marginBottom: 8 }}
+                    >
+                        <option value="">Select a reason</option>
+                        <option value="spam">Spam or misleading</option>
+                        <option value="fraud">Fraud or fake</option>
+                        <option value="inappropriate">Inappropriate content</option>
+                        <option value="duplicate">Duplicate listing</option>
+                        <option value="illegal">Illegal offer</option>
+                    </select>
+                    <textarea
+                        placeholder="Optional details"
+                        value={reportMessage}
+                        onChange={(e) => setReportMessage(e.target.value)}
+                        style={{ width: "100%", padding: 8, minHeight: 80, marginBottom: 8 }}
+                    />
+                    <button
+                        onClick={async () => {
+                            try {
+                                const token = useUserStore.getState().accessToken;
+                                if (!token) { toast.error("Please login to report"); return; }
+                                if (!reportReason) { toast.error("Select a reason"); return; }
+                                await axios.post(
+                                    `/api/reports/room/${room._id}`,
+                                    { reason: reportReason, message: reportMessage }
+                                );
+                                toast.success("Report submitted");
+                                setReportReason("");
+                                setReportMessage("");
+                            } catch (e) {
+                                toast.error(e.response?.data?.message || "Failed to submit report");
+                            }
+                        }}
+                        style={{ padding: "8px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6 }}
+                    >
+                        Report
+                    </button>
                 </div>
             </div>
         </div>

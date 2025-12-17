@@ -1,6 +1,6 @@
 // pages/promotions/index.jsx
 import React, { useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import PromotionCard from "./components/PromotionCard";
 
 const styles = {
@@ -40,7 +40,7 @@ const styles = {
 };
 
 export default function PromotionsPage() {
-  const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,7 +48,7 @@ export default function PromotionsPage() {
     try {
       setLoading(true);
       setError("");
-      const res = await axios.post(`${API}/api/users/premium/checkout`);
+      const res = await axios.post(`/api/users/premium/checkout`);
       const url = res.data?.url;
       if (url) {
         window.location.href = url;

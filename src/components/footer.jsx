@@ -4,21 +4,31 @@ import { Link } from "react-router-dom";
 
 const Footer = () => {
   const styles = {
-    footerContainer: {
+    footerWrapper: {
       backgroundColor: "#fff",
       color: "#1f2937",
-      padding: "60px 80px",
-      fontFamily: "Arial, sans-serif",
+      padding: "60px 0 20px",
+      fontFamily: "'Inter', sans-serif",
+      borderTop: "1px solid #E2E8F0",
+    },
+    container: {
+      width: "100%",
+      maxWidth: "1280px",
+      margin: "0 auto",
+      padding: "0 24px",
+      boxSizing: "border-box",
     },
     topSection: {
       display: "flex",
       justifyContent: "space-between",
       flexWrap: "wrap",
-      marginBottom: "40px",
+      marginBottom: "60px",
+      gap: "40px",
     },
     leftSection: {
       flex: "1",
-      minWidth: "250px",
+      minWidth: "280px",
+      maxWidth: "360px",
       display: "flex",
       flexDirection: "column",
       alignItems: "flex-start",
@@ -27,36 +37,43 @@ const Footer = () => {
     logo: {
       display: "flex",
       alignItems: "center",
-      fontSize: "22px",
-      fontWeight: "bold",
-      color: "#1e3a8a",
-      marginBottom: "16px",
+      fontSize: "24px",
+      fontWeight: "800",
+      color: "#1E293B",
+      marginBottom: "20px",
+      letterSpacing: "-0.02em",
     },
     logoIcon: {
-      backgroundColor: "#2563eb",
+      backgroundColor: "#2563EB",
       color: "#fff",
-      borderRadius: "8px",
+      borderRadius: "10px",
       padding: "8px",
-      marginRight: "10px",
-      fontSize: "18px",
+      marginRight: "12px",
+      fontSize: "20px",
+      boxShadow: "0 4px 6px -1px rgba(37, 99, 235, 0.2)",
     },
     text: {
-      color: "#4b5563",
-      fontSize: "14px",
-      lineHeight: "22px",
-      marginBottom: "20px",
+      color: "#64748B",
+      fontSize: "15px",
+      lineHeight: "1.6",
+      marginBottom: "24px",
     },
     socialIcons: {
       display: "flex",
-      gap: "20px",
+      gap: "12px",
     },
     socialIcon: {
-      backgroundColor: "#f3f4f6",
-      borderRadius: "8px",
-      padding: "10px",
-      fontSize: "18px",
+      backgroundColor: "#F1F5F9",
+      borderRadius: "10px",
+      width: "40px",
+      height: "40px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      fontSize: "16px",
       cursor: "pointer",
-      transition: "0.3s",
+      transition: "all 0.2s ease",
+      color: "#64748B",
     },
     linksContainer: {
       display: "flex",
@@ -66,81 +83,103 @@ const Footer = () => {
       gap: "40px",
     },
     linkGroup: {
-      minWidth: "150px",
+      minWidth: "140px",
     },
     linkHeading: {
-      fontWeight: "bold",
-      marginBottom: "10px",
-      color: "#111827",
+      fontWeight: "700",
+      marginBottom: "20px",
+      color: "#0F172A",
+      fontSize: "16px",
     },
     link: {
       display: "block",
-      color: "#4b5563",
+      color: "#64748B",
       textDecoration: "none",
-      marginBottom: "8px",
+      marginBottom: "12px",
       fontSize: "14px",
-      transition: "0.3s",
+      transition: "color 0.2s",
     },
     subscribeSection: {
-      borderTop: "1px solid #e5e7eb",
-      paddingTop: "30px",
-      marginTop: "30px",
+      backgroundColor: "#F8FAFF",
+      borderRadius: "20px",
+      padding: "32px",
+      marginBottom: "40px",
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
       flexWrap: "wrap",
+      gap: "20px",
+      border: "1px solid #F1F5F9",
     },
     subscribeText: {
-      fontSize: "18px",
-      fontWeight: "bold",
-      color: "#111827",
+      fontSize: "20px",
+      fontWeight: "700",
+      color: "#0F172A",
+      marginBottom: "8px",
     },
     subscribeBox: {
       display: "flex",
       alignItems: "center",
-      border: "1px solid #e5e7eb",
-      borderRadius: "8px",
+      backgroundColor: "#fff",
+      border: "1px solid #E2E8F0",
+      borderRadius: "12px",
       overflow: "hidden",
+      padding: "4px",
+      width: "100%",
+      maxWidth: "400px",
+      boxShadow: "0 2px 4px rgba(0,0,0,0.02)",
     },
     subscribePara: {
-      color: "gray",
-      fontSize: "14px",
-      marginBottom: "8px",
+      color: "#64748B",
+      fontSize: "15px",
+      margin: 0,
     },
     leftSubscribeSection: {
       display: "flex",
-      justifyContent: "flex-start",
-      alignItems: "flex-start",
+      justifyContent: "center",
       flexDirection: "column",
     },
     input: {
       padding: "12px 16px",
       border: "none",
       outline: "none",
-      fontSize: "14px",
-      width: "320px",
+      fontSize: "15px",
+      width: "100%",
+      color: "#334155",
     },
     sendButton: {
-      backgroundColor: "#2563eb",
+      backgroundColor: "#2563EB",
       color: "#fff",
-      padding: "12px 18px",
+      padding: "10px 24px",
       cursor: "pointer",
       border: "none",
+      borderRadius: "8px",
+      fontWeight: "600",
+      transition: "background 0.2s",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
     },
     bottomBar: {
-      borderTop: "1px solid #e5e7eb",
-      marginTop: "30px",
-      paddingTop: "20px",
-      fontSize: "13px",
-      color: "#6b7280",
+      borderTop: "1px solid #F1F5F9",
+      paddingTop: "30px",
+      fontSize: "14px",
+      color: "#94A3B8",
       display: "flex",
       justifyContent: "space-between",
       flexWrap: "wrap",
+      gap: "20px",
+      alignItems: "center",
     },
     bottomLinks: {
       display: "flex",
-      gap: "16px",
+      gap: "24px",
     },
+    bottomLink: {
+      color: "#64748B",
+      textDecoration: "none",
+      transition: "color 0.2s",
+    }
   };
 
   const linkGroups = [
@@ -187,68 +226,109 @@ const Footer = () => {
   ];
 
   return (
-    <footer style={styles.footerContainer}>
-      {/* Top Section */}
-      <div style={styles.topSection}>
-        {/* Left side */}
-        <div style={styles.leftSection}>
-          <div style={styles.logo}>
-            <div style={styles.logoIcon}>📦</div>
-            Campus Cart
+    <footer style={styles.footerWrapper}>
+      <div style={styles.container}>
+        {/* Top Section */}
+        <div style={styles.topSection}>
+          {/* Left side */}
+          <div style={styles.leftSection}>
+            <div style={styles.logo}>
+              <div style={styles.logoIcon}>📦</div>
+              Campus Cart
+            </div>
+            <p style={styles.text}>
+              Campus Cart is India’s leading marketplace for buying and selling anything from vehicles to furniture, jobs to services. Join millions of users nationwide.
+            </p>
+            <div style={styles.socialIcons}>
+              {[FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaYoutube].map((Icon, i) => (
+                <div
+                  key={i}
+                  style={styles.socialIcon}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#2563EB";
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#F1F5F9";
+                    e.currentTarget.style.color = "#64748B";
+                    e.currentTarget.style.transform = "translateY(0)";
+                  }}
+                >
+                  <Icon />
+                </div>
+              ))}
+            </div>
           </div>
-          <p style={styles.text}>
-            Campus Cart is India’s leading marketplace for buying and selling anything from vehicles to furniture, jobs to services. Join millions of users nationwide.
-          </p>
-          <div style={styles.socialIcons}>
-            {[FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaYoutube].map((Icon, i) => (
-              <div
-                key={i}
-                style={styles.socialIcon}
-                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#2563eb")}
-                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#f3f4f6")}
-              >
-                <Icon color="#1f2937" />
+
+          {/* Links Section */}
+          <div style={styles.linksContainer}>
+            {linkGroups.map((group, index) => (
+              <div key={index} style={styles.linkGroup}>
+                <h4 style={styles.linkHeading}>{group.title}</h4>
+                {group.links.map((link, i) => (
+                  <Link 
+                    key={i} 
+                    to={link.path} 
+                    style={styles.link}
+                    onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
+                    onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
               </div>
             ))}
           </div>
         </div>
 
-        {/* Links Section */}
-        <div style={styles.linksContainer}>
-          {linkGroups.map((group, index) => (
-            <div key={index} style={styles.linkGroup}>
-              <h4 style={styles.linkHeading}>{group.title}</h4>
-              {group.links.map((link, i) => (
-                <Link key={i} to={link.path} style={styles.link}>
-                  {link.name}
-                </Link>
-              ))}
-            </div>
-          ))}
+        {/* Subscribe Section */}
+        <div style={styles.subscribeSection}>
+          <div style={styles.leftSubscribeSection}>
+            <p style={styles.subscribeText}>Stay Updated</p>
+            <p style={styles.subscribePara}>Get the latest deals and updates from Campus Cart directly in your inbox</p>
+          </div>
+          <div style={styles.subscribeBox}>
+            <input type="email" placeholder="Enter your email address" style={styles.input} />
+            <button 
+              style={styles.sendButton}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1D4ED8"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#2563EB"}
+            >
+              <FaPaperPlane />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Subscribe Section */}
-      <div style={styles.subscribeSection}>
-        <div style={styles.leftSubscribeSection}>
-          <p style={styles.subscribeText}>Stay Updated</p>
-          <p style={styles.subscribePara}>Get the latest deals and updates from Campus Cart directly in your inbox</p>
-        </div>
-        <div style={styles.subscribeBox}>
-          <input type="email" placeholder="Enter your email" style={styles.input} />
-          <button style={styles.sendButton}>
-            <FaPaperPlane />
-          </button>
-        </div>
-      </div>
-
-      {/* Bottom Bar */}
-      <div style={styles.bottomBar}>
-        <p>© 2025 Campus Cart. All rights reserved.</p>
-        <div style={styles.bottomLinks}>
-          <Link to="/privacy-policy" style={styles.link}>Privacy Policy</Link>
-          <Link to="/terms-of-service" style={styles.link}>Terms of Service</Link>
-          <Link to="/cookie-policy" style={styles.link}>Cookie Policy</Link>
+        {/* Bottom Bar */}
+        <div style={styles.bottomBar}>
+          <p>© 2025 Campus Cart. All rights reserved.</p>
+          <div style={styles.bottomLinks}>
+            <Link 
+              to="/privacy-policy" 
+              style={styles.bottomLink}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
+            >
+              Privacy Policy
+            </Link>
+            <Link 
+              to="/terms-of-service" 
+              style={styles.bottomLink}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
+            >
+              Terms of Service
+            </Link>
+            <Link 
+              to="/cookie-policy" 
+              style={styles.bottomLink}
+              onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
+              onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
+            >
+              Cookie Policy
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

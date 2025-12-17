@@ -1,5 +1,4 @@
-import React from "react";
-import useUserStore from "../../store/userStore";
+import { useUserStore } from "../../store/userStore";
 import { useNavigate } from "react-router-dom";
 
 function Index() {
@@ -157,7 +156,7 @@ function Index() {
     const password = form.get("password");
 
     // 🔥 Call zustand login(email, password)
-    const result = await login(email, password);
+    const result = await login({ email, password });
 
     if (result.success) {
       navigate("/homepage");

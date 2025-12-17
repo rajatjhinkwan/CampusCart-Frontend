@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import Navbar from "../../components/Navbar.jsx";
 import NotificationsTabs from "./components/NotificationsTabs.jsx";
 import NotificationsList from "./components/NotificationsList.jsx";
@@ -11,7 +11,6 @@ export default function NotificationsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
-  const accessToken = localStorage.getItem("accessToken");
 
   const showToast = (text, type = "info") => {
     setToast({ text, type });
@@ -27,10 +26,8 @@ export default function NotificationsPage() {
       if (typeFilter) q.push(`type=${typeFilter}`);
       if (searchTerm && searchTerm.trim()) q.push(`q=${encodeURIComponent(searchTerm.trim())}`);
       const qs = q.length ? `?${q.join("&")}` : "";
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications${qs}`;
-      const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const url = `/api/notifications${qs}`;
+      const res = await axios.get(url);
 
       setNotifications(res.data);
     } catch (error) {
@@ -54,14 +51,11 @@ export default function NotificationsPage() {
   const toggleRead = async (n) => {
     try {
       const id = n._id || n.id;
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}/toggle`;
-      const original = notifications;
+      const url = `/api/notifications/${id}/toggle`;
       setNotifications((prev) =>
         prev.map((x) => ((x._id || x.id) === id ? { ...x, isRead: !x.isRead } : x))
       );
-      const res = await axios.patch(url, {}, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const res = await axios.patch(url, {});
       setNotifications((prev) =>
         prev.map((x) => ((x._id || x.id) === (res.data._id || res.data.id) ? res.data : x))
       );
@@ -79,10 +73,9 @@ export default function NotificationsPage() {
 
   const markAllRead = async () => {
     try {
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/mark-all-read`;
-      const original = notifications;
+      const url = `/api/notifications/mark-all-read`;
       setNotifications((prev) => prev.map((x) => ({ ...x, isRead: true })));
-      await axios.patch(url, {}, { headers: { Authorization: `Bearer ${accessToken}` } });
+      await axios.patch(url, {});
       setNotifications((prev) => prev.map((x) => ({ ...x, isRead: true })));
       showToast("All marked as read", "success");
     } catch (e) {

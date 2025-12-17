@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 // Ensure you have lucide-react installed
 import {
   CheckCircle2, Crown, Star, ChevronRight,
@@ -251,7 +251,7 @@ const AccountStatus = () => {
         setError("");
         const token = localStorage.getItem("accessToken");
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:5000/api/users/account-metrics", { headers });
+        const res = await axios.get("/api/users/account-metrics", { headers });
         setMetrics(res.data || null);
       } catch (e) {
         setError(e?.response?.data?.message || e?.message || "Failed to load account metrics");

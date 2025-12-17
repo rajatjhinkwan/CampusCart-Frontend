@@ -40,13 +40,14 @@ export default function ProfileSettings({ data, onChange, onAvatarSelect }) {
 
       {/* NAME */}
       <div style={styles.field}>
-        <label style={styles.label}>Full Name</label>
+        <label style={styles.label}>Full Name *</label>
         <input
           type="text"
           name="name"
           value={form.name || ""}
           onChange={handleChange}
           style={styles.input}
+          required
         />
       </div>
 
@@ -70,6 +71,19 @@ export default function ProfileSettings({ data, onChange, onAvatarSelect }) {
           value={form.bio || ""}
           onChange={handleChange}
           style={styles.textarea}
+        />
+      </div>
+
+      {/* INSTITUTION */}
+      <div style={styles.field}>
+        <label style={styles.label}>Institution / Company</label>
+        <input
+          type="text"
+          name="institution"
+          placeholder="e.g. IIT Delhi, Microsoft"
+          value={form.institution || ""}
+          onChange={handleChange}
+          style={styles.input}
         />
       </div>
 

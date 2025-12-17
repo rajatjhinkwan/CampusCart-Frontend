@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 
 // Import icons from lucide-react (only the ones used in products)
 import { Smartphone, Shirt, Laptop, Sofa, Camera, Dumbbell, BookMarked, Bike, LampDesk, Gamepad2, Headphones, Monitor, ShoppingBasket, Guitar } from "lucide-react";
@@ -30,7 +30,7 @@ export default function Step1A({ onSelect }) {
     useEffect(() => {
         const fetchSubcategories = async () => {
             try {
-                const res = await axios.get("http://localhost:5000/api/categories");
+                const res = await axios.get("/api/categories");
                 const allCategories = res.data.categories || [];
 
                 // Find Product main category ID

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 // Assuming Lucide icons are available
 import {
   Plus, Search, MapPin, Clock, Settings,
@@ -242,9 +242,7 @@ const SavedSearches = () => {
       try {
         setLoading(true);
         setError("");
-        const token = localStorage.getItem("accessToken");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:5000/api/wishlist/me", { headers });
+        const res = await axios.get("/api/wishlist/me");
         const wishlist = res.data?.wishlist?.products || [];
         const mapped = wishlist.map((p) => ({
           name: p.title || "Untitled",

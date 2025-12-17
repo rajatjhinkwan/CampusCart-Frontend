@@ -1,148 +1,144 @@
-import React, { useEffect } from "react";
-import { useState } from "react";
-import axios from "axios";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function Categories() {
-  const containerStyle = {
+  const navigate = useNavigate();
+  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  const isDesktop = width >= 1024;
+  const isTablet = width >= 640 && width < 1024;
+  
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const wrapperStyle = {
+    width: "100%",
     display: "flex",
-    flexWrap: "wrap",
     justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#F8FAFF",
-    padding: "1px",
-    borderRadius: "12px",
-    width: "90%",
-    margin: "20px auto",
-    boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+    padding: "40px 0",
+    backgroundColor: "#fff",
+  };
+
+  const containerStyle = {
+    display: "grid",
+    gridTemplateColumns: isDesktop ? "repeat(5, 1fr)" : isTablet ? "repeat(3, 1fr)" : "repeat(1, 1fr)",
+    justifyContent: "center",
+    alignItems: "stretch",
+    gap: "24px",
+    width: "100%",
+    maxWidth: "1280px",
+    padding: "0 24px",
+    boxSizing: "border-box",
   };
 
   const cardStyle = {
     backgroundColor: "#fff",
-    borderRadius: "16px",
-    width: "250px",
-    minheight: "160px",
-    margin: "15px",
+    borderRadius: "20px",
+    width: "100%",
+    minHeight: "180px",
     display: "flex",
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "flex-start",
-    padding: "20px",
-    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.05)",
-    transition: "transform 0.3s ease, box-shadow 0.3s ease",
+    padding: "24px",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+    border: "1px solid #f1f5f9",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     cursor: "pointer",
-  };
-
-  const cardHover = {
-    transform: "translateY(-5px)",
-    boxShadow: "0 8px 20px rgba(0, 0, 0, 0.1)",
+    position: "relative",
+    overflow: "hidden",
   };
 
   const iconBox = (bgColor) => ({
-    backgroundColor: bgColor,
+    backgroundColor: bgColor, // Keep original color but maybe adjust opacity in icon
+    background: `linear-gradient(135deg, ${bgColor} 0%, ${adjustColor(bgColor, -20)} 100%)`,
     color: "#fff",
-    borderRadius: "12px",
-    width: "55px",
-    height: "55px",
+    borderRadius: "14px",
+    width: "56px",
+    height: "56px",
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: "10px",
+    marginBottom: "20px",
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
   });
 
-  const cardText = {
-    display: 'flex',
-    justifyContent: "flexstart",
-    alignItems: "center",
-    flexDirection: 'column',
-    border: '2px solid black'
+  // Helper to darken color for gradient
+  function adjustColor(color, amount) {
+    return '#' + color.replace(/^#/, '').replace(/../g, color => ('0'+Math.min(255, Math.max(0, parseInt(color, 16) + amount)).toString(16)).substr(-2));
   }
 
   const titleStyle = {
     fontSize: "18px",
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#1E293B",
-    marginBottom: "4px",
+    marginBottom: "8px",
+    letterSpacing: "-0.01em",
   };
 
   const subTextStyle = {
     fontSize: "14px",
     color: "#64748B",
-    marginBottom: "8px",
+    lineHeight: "1.5",
   };
 
-  const countStyle = {
-    fontSize: "18px",
-    fontWeight: "700",
-    color: "#2563EB",
-  };
-
-  // Data for cards
   const cards = [
-    { icon: "fa-car", title: "Vehicles", desc: "Cars, Bikes, Trucks", color: "#2563EB", count: "125,430" },
-    { icon: "fa-house", title: "Real Estate", desc: "Houses, Apartments, Land", color: "#10B981", count: "89,250" },
-    { icon: "fa-mobile-screen", title: "Electronics", desc: "Phones, Laptops, Gadgets", color: "#8B5CF6", count: "234,180" },
-    { icon: "fa-briefcase", title: "Jobs", desc: "Full-time, Part-time, Freelance", color: "#F97316", count: "45,670" },
-    { icon: "fa-screwdriver-wrench", title: "Services", desc: "Repair, Cleaning, Tutoring", color: "#EF4444", count: "67,890" },
-    { icon: "fa-shirt", title: "Fashion", desc: "Clothing, Shoes, Accessories", color: "#EC4899", count: "156,340" },
-    { icon: "fa-tree", title: "Home & Garden", desc: "Furniture, Decor, Plants", color: "#22C55E", count: "78,920" },
-    { icon: "fa-dumbbell", title: "Sports", desc: "Equipment, Fitness, Outdoor", color: "#06B6D4", count: "34,560" },
+    { icon: "fa-bag-shopping", name: "Product Resell", desc: "Buy and sell pre-owned products", color: "#3B82F6", route: "/browse?tab=Products" },
+    { icon: "fa-house", name: "Rooms", desc: "Find rooms & roommates nearby", color: "#10B981", route: "/browse?tab=Rooms" },
+    { icon: "fa-screwdriver-wrench", name: "Services", desc: "Hire local professionals & experts", color: "#8B5CF6", route: "/browse?tab=Services" },
+    { icon: "fa-briefcase", name: "Jobs", desc: "Find jobs & internship opportunities", color: "#EF4444", route: "/browse?tab=Jobs" },
+    { icon: "fa-car-side", name: "Ride Share", desc: "Carpooling & ride sharing services", color: "#0EA5E9", route: "/rides" },
   ];
 
-  // ✅ Fetch categories only once using useEffect
-  const [categories, setCategories] = useState([]);
-
-  if (categories.length === 0) {
-    console.log("Categories state is empty.");
-    setCategories(cards); // Set default cards if API data is not yet available
-  }
-
-  useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/categories")
-      .then((response) => {
-        console.log("Fetching categories from API...");
-        console.log("API Response:", response.data.categories);
-        // FIXED: set only the array, not the whole object
-        setCategories(response.data.categories);
-      })
-      .catch((error) => {
-        console.error("API Error:", error);
-      });
-  }, []); // run only once
-
   return (
-    <div style={containerStyle}>
-      {categories.map((item, index) => (
-        <div
-          key={index}
-          style={cardStyle}
-          onMouseEnter={(e) => {
-            Object.assign(e.currentTarget.style, cardHover);
-          }}
-          onMouseLeave={(e) => {
-            Object.assign(e.currentTarget.style, cardStyle);
-          }}
-        >
-          <div style={iconBox(item.color)}>
-            <i
-              className={`fa-solid ${item.icon}`}
-              style={{ fontSize: "24px" }}
-            ></i>
-          </div>
+    <div style={wrapperStyle}>
+      <style>
+        {`
+          @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+          }
+        `}
+      </style>
+      <div style={containerStyle}>
+        {cards.map((item, index) => (
+          <div
+            key={index}
+            style={cardStyle}
+            onClick={() => navigate(item.route)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-8px)";
+              e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
+              e.currentTarget.style.borderColor = "transparent";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)";
+              e.currentTarget.style.borderColor = "#f1f5f9";
+            }}
+          >
+            <div style={{
+              ...iconBox(item.color),
+              animation: `float ${3 + index * 0.5}s ease-in-out infinite`
+            }}>
+              <i
+                className={`fa-solid ${item.icon}`}
+                style={{ fontSize: "24px" }}
+              ></i>
+            </div>
 
-          <div style={{ cardText }}>
-            <h2 style={titleStyle}>{item.name}</h2>
-            <p style={subTextStyle}>{item.desc}</p>
-            <p style={countStyle}>
-              {item.count}{" "}
-              <span style={{ color: "#94A3B8", fontSize: "14px" }}>ads</span>
-            </p>
+            <div>
+              <h2 style={titleStyle}>{item.name}</h2>
+              <p style={subTextStyle}>{item.desc}</p>
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
-
 }
 
 export default Categories;

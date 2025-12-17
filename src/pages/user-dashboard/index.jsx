@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import Navbar from "../../components/navbar";
 import DashboardTabs from "./components/dashboardTabs.jsx";
 import DashboardMetrics from "./components/dashboardMetrics.jsx";
@@ -13,11 +13,9 @@ const UserDashboardIndex = () => {
   useEffect(() => {
     const run = async () => {
       try {
-        const token = localStorage.getItem("accessToken");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
         const [productsRes, convsRes] = await Promise.all([
-          axios.get("http://localhost:5000/api/products/my-products", { headers }),
-          axios.get("http://localhost:5000/api/conversations", { headers }),
+          axios.get("/api/products/my-products"),
+          axios.get("/api/conversations"),
         ]);
         const products = productsRes.data?.products || [];
         const conversations = Array.isArray(convsRes.data) ? convsRes.data : [];

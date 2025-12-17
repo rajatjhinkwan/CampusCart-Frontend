@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import toast from "react-hot-toast";
 
 // Step Components
@@ -29,7 +29,7 @@ export default function SellItem() {
   useEffect(() => {
     const loadCategories = async () => {
       try {
-        const res = await axios.get("http://localhost:5000/api/categories");
+        const res = await axios.get("/api/categories");
         const list = res.data.categories || [];
         setCategories(list);
 
@@ -63,6 +63,10 @@ export default function SellItem() {
       rent: "",      // For rooms
       salary: "",    // For jobs
       rate: "",      // For services
+      // 🆕 RENTAL
+      transactionType: "sell",
+      rentalPeriod: "Monthly",
+      securityDeposit: "",
     },
 
     // Location (Rooms & Jobs)
@@ -213,20 +217,28 @@ export default function SellItem() {
         if (!categoryId) throw new Error(`Category ID not found for: ${form.category}`);
         formData.append("category", categoryId);
 
-        formData.append("price", form.priceDetails.price);
-        formData.append("minPrice", form.priceDetails.minPrice);
+        // 🆕 Handle Rent vs Sell
+        const type = form.priceDetails.transactionType || "sell";
+        formData.append("type", type);
+
+        if (type === "rent") {
+            formData.append("rentalPrice", form.priceDetails.price); // Reuse price field
+            formData.append("rentalPeriod", form.priceDetails.rentalPeriod || "Monthly");
+            formData.append("securityDeposit", form.priceDetails.securityDeposit || 0);
+            formData.append("price", 0); // Set base price to 0 for rentals if schema requires it
+        } else {
+            formData.append("price", form.priceDetails.price);
+            formData.append("minPrice", form.priceDetails.minPrice);
+        }
       }
 
       // -----------------------
       // POST REQUEST
       // -----------------------
-      const token = localStorage.getItem("accessToken");
       const endpoint = getApiEndpoint();
-
       const response = await axios.post(
-        `http://localhost:5000/api/${endpoint}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+        `/api/${endpoint}`,
+        formData
       );
 
       if (response.data.success) {

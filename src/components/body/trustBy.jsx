@@ -8,188 +8,161 @@ import {
 
 const SellingSection = () => {
   const styles = {
+    wrapper: {
+      width: "100%",
+      display: "flex",
+      justifyContent: "center",
+      padding: "20px 0",
+    },
     container: {
-      background: "linear-gradient(180deg, #4462F1 0%, #F1A13B 100%)",
+      width: "100%",
+      maxWidth: "1280px",
+      background: "linear-gradient(120deg, #2563EB 0%, #4F46E5 100%)",
       color: "white",
       textAlign: "center",
-      padding: "80px 20px",
-      borderRadius: "0px",
+      padding: "40px 24px",
+      borderRadius: "24px",
       overflow: "hidden",
+      position: "relative",
+      boxShadow: "0 20px 40px rgba(37, 99, 235, 0.2)",
     },
     heading: {
-      fontSize: "2.8rem",
-      fontWeight: "700",
+      fontSize: "clamp(1.5rem, 4vw, 2.5rem)", // Reduced font size slightly
+      fontWeight: "800",
       marginBottom: "12px",
-      textShadow: "1px 1px 4px rgba(0,0,0,0.3)"
+      letterSpacing: "-0.02em",
     },
     subtext: {
-      fontSize: "1.1rem",
-      color: "rgba(255,255,255,0.95)",
-      marginBottom: "50px",
-      maxWidth: "650px",
-      margin: "0 auto 50px auto"
+      fontSize: "1rem",
+      color: "rgba(255,255,255,0.9)",
+      marginBottom: "24px",
+      maxWidth: "600px",
+      margin: "0 auto 24px auto",
+      lineHeight: "1.6",
     },
     buttonGroup: {
       display: "flex",
       justifyContent: "center",
-      gap: "30px",
-      marginBottom: "50px",
+      gap: "16px",
+      marginBottom: "32px",
       flexWrap: "wrap",
     },
     primaryButton: {
       backgroundColor: "white",
-      color: "#4462F1",
-      fontWeight: "600",
-      padding: "10px 22px",
-      borderRadius: "10px",
+      color: "#2563EB",
+      fontWeight: "700",
+      padding: "16px 32px",
+      borderRadius: "12px",
       border: "none",
-      fontSize: "1.05rem",
+      fontSize: "1rem",
       cursor: "pointer",
-      boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
-      transition: "all 0.3s ease",
+      boxShadow: "0 10px 20px rgba(0,0,0,0.1)",
+      transition: "transform 0.2s, box-shadow 0.2s",
     },
     secondaryButton: {
-      backgroundColor: "transparent",
+      backgroundColor: "rgba(255,255,255,0.1)",
       color: "white",
       fontWeight: "600",
-      padding: "14px 32px",
-      borderRadius: "10px",
-      border: "1px solid rgba(255,255,255,0.8)",
-      fontSize: "1.05rem",
+      padding: "16px 32px",
+      borderRadius: "12px",
+      border: "1px solid rgba(255,255,255,0.3)",
+      fontSize: "1rem",
       cursor: "pointer",
-      transition: "all 0.3s ease",
+      backdropFilter: "blur(10px)",
+      transition: "background 0.2s",
     },
     featureContainer: {
-      display: "flex",
-      justifyContent: "center",
-      gap: "60px",
-      flexWrap: "wrap",
-      marginBottom: "30px",
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+      gap: "32px",
+      maxWidth: "1000px",
+      margin: "0 auto",
     },
     featureBox: {
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
-      width: "220px",
       textAlign: "center",
-      transition: "transform 0.3s ease, box-shadow 0.3s ease",
-      cursor: "default",
-    },
-    featureBoxHover: {
-      transform: "translateY(-10px)",
-      boxShadow: "0 10px 20px rgba(0,0,0,0.25)"
+      padding: "20px",
     },
     featureIcon: {
-      backgroundColor: "rgba(255,255,255,0.2)",
-      borderRadius: "12px",
-      width: "60px",
-      height: "60px",
+      backgroundColor: "rgba(255,255,255,0.15)",
+      borderRadius: "16px",
+      width: "64px",
+      height: "64px",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      marginBottom: "14px",
-      fontSize: "26px",
-      transition: "all 0.3s ease",
+      marginBottom: "16px",
+      color: "white",
+      backdropFilter: "blur(5px)",
     },
     featureTitle: {
       fontWeight: "700",
-      fontSize: "1.15rem",
-      marginBottom: "6px",
+      fontSize: "1.1rem",
+      marginBottom: "8px",
     },
     featureText: {
-      color: "rgba(255,255,255,0.9)",
+      color: "rgba(255,255,255,0.8)",
       fontSize: "0.95rem",
-    },
-    statsContainer: {
-      borderTop: "1px solid rgba(255,255,255,0.4)",
-      paddingTop: "50px",
-      display: "flex",
-      justifyContent: "center",
-      gap: "110px",
-      flexWrap: "wrap",
-      marginBottom: "25px",
-    },
-    statBox: {
-      textAlign: "center",
-      transition: "transform 0.3s ease",
-    },
-    statNumber: {
-      fontSize: "2rem",
-      fontWeight: "700",
-      marginBottom: "6px",
-      textShadow: "1px 1px 3px rgba(0,0,0,0.3)"
-    },
-    statText: {
-      color: "rgba(255,255,255,0.95)",
-      fontWeight: "500",
-    },
-    footerText: {
-      color: "rgba(255,255,255,0.85)",
-      fontSize: "0.95rem",
-      marginTop: "10px",
-      fontStyle: "italic"
+      lineHeight: "1.5",
     },
   };
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>Ready to Start Selling?</h1>
-      <p style={styles.subtext}>
-        Join our community of millions and turn your unused items into cash. It's free, fast, and secure.
-      </p>
+    <div style={styles.wrapper}>
+      <div style={styles.container}>
+        <h2 style={styles.heading}>Ready to start selling?</h2>
+        <p style={styles.subtext}>
+          Join thousands of sellers and start earning today. List your products, rooms, services, or jobs in minutes.
+        </p>
 
-      <div style={styles.buttonGroup}>
-        <button
-          style={styles.primaryButton}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = "#e0e7ff"}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "white"}
-        >
-          + Post Your First Ad
-        </button>
-        <button
-          style={styles.secondaryButton}
-          onMouseEnter={e => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"}
-          onMouseLeave={e => e.currentTarget.style.backgroundColor = "transparent"}
-        >
-          Browse Listings
-        </button>
-      </div>
-
-      <div style={styles.featureContainer}>
-        {[
-          { Icon: Zap, title: "Post in Minutes", text: "Quick and easy listing creation with photo upload" },
-          { Icon: Users, title: "Reach People", text: "Connect with buyers and sellers in your area" },
-          { Icon: ShieldCheck, title: "Safe & Secure", text: "Verified users and secure messaging system" },
-          { Icon: DollarSign, title: "Free to Start", text: "No listing fees for basic ads, premium options available" },
-        ].map((feature, i) => (
-          <div
-            key={i}
-            style={styles.featureBox}
-            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-10px)"}
-            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0px)"}
+        <div style={styles.buttonGroup}>
+          <button 
+            style={styles.primaryButton}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "translateY(-2px)";
+              e.currentTarget.style.boxShadow = "0 15px 30px rgba(0,0,0,0.15)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "translateY(0)";
+              e.currentTarget.style.boxShadow = "0 10px 20px rgba(0,0,0,0.1)";
+            }}
           >
-            <div style={styles.featureIcon}><feature.Icon size={28} strokeWidth={2.2} /></div>
-            <h3 style={styles.featureTitle}>{feature.title}</h3>
-            <p style={styles.featureText}>{feature.text}</p>
-          </div>
-        ))}
-      </div>
+            Start Selling Now
+          </button>
+          <button 
+            style={styles.secondaryButton}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"}
+          >
+            Learn More
+          </button>
+        </div>
 
-      <div style={styles.statsContainer}>
-        {[
-          { number: "2.5M+", text: "Active Listings" },
-          { number: "500K+", text: "Happy Users" },
-          { number: "1M+", text: "Successful Deals" },
-          { number: "50+", text: "Cities Covered" },
-        ].map((stat, i) => (
-          <div key={i} style={styles.statBox}>
-            <h2 style={styles.statNumber}>{stat.number}</h2>
-            <p style={styles.statText}>{stat.text}</p>
+        <div style={styles.featureContainer}>
+          <div style={styles.featureBox}>
+            <div style={styles.featureIcon}><Zap size={32} /></div>
+            <div style={styles.featureTitle}>Fast Listing</div>
+            <div style={styles.featureText}>List in under 2 minutes with our easy tools.</div>
           </div>
-        ))}
+          <div style={styles.featureBox}>
+            <div style={styles.featureIcon}><Users size={32} /></div>
+            <div style={styles.featureTitle}>Huge Audience</div>
+            <div style={styles.featureText}>Reach thousands of local buyers instantly.</div>
+          </div>
+          <div style={styles.featureBox}>
+            <div style={styles.featureIcon}><ShieldCheck size={32} /></div>
+            <div style={styles.featureTitle}>Secure Platform</div>
+            <div style={styles.featureText}>Verified users and secure communication.</div>
+          </div>
+          <div style={styles.featureBox}>
+            <div style={styles.featureIcon}><DollarSign size={32} /></div>
+            <div style={styles.featureTitle}>Zero Fees</div>
+            <div style={styles.featureText}>Keep 100% of your earnings. No hidden charges.</div>
+          </div>
+        </div>
       </div>
-
-      <p style={styles.footerText}>Trusted by hundreds of users in Chamoli</p>
     </div>
   );
 };

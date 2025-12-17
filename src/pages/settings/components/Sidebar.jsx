@@ -3,12 +3,11 @@ import { styles } from "../styles";
 
 export default function Sidebar({ activeTab, onTabChange }) {
   const menu = [
-    { id: "profile", label: "Profile & Security" },
-    { id: "listings", label: "Listings & Selling" },
-    { id: "payments", label: "Payments & Wallet" },
+    { id: "profile", label: "Profile" },
+    { id: "security", label: "Security" },
     { id: "notifications", label: "Notifications" },
-    { id: "privacy", label: "Privacy & Data" },
-    { id: "preferences", label: "App Preferences" },
+    { id: "privacy", label: "Privacy" },
+    { id: "preferences", label: "Preferences" },
   ];
 
   return (

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 import ProgressBar from "./progressBar";
 import { Briefcase, Code, Video, Palette, UserCheck, Camera, Megaphone, Package } from "lucide-react";
 
@@ -23,7 +23,7 @@ export default function Step1D({ onSelect }) {
     useEffect(() => {
         const fetchServices = async () => {
             try {
-                const res = await axios.get("http://localhost:5000/api/categories");
+                const res = await axios.get("/api/categories");
                 const allCategories = res.data.categories || [];
 
                 // Filter only service subcategories (type: service & has a parent)

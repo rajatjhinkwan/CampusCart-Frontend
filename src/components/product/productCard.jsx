@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -9,29 +9,53 @@ import {
   Clock,
   Briefcase,
 } from "lucide-react";
+import { useUserStore } from "../../store/userStore";
 
 // ------------------------------
 // LOCATION NORMALIZER
 // ------------------------------
 const normalizeLocation = (loc) => {
   if (!loc) return "Unknown";
-  if (typeof loc === "string") return loc;
-
+  if (typeof loc === "string") {
+    const s = loc.trim();
+    if (s.startsWith("{") && s.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(s);
+        const { address, area, city, state, pincode } = parsed || {};
+        const str = [address, area, city, state, pincode].filter(Boolean).join(", ");
+        return str || "Unknown";
+      } catch {
+        return s;
+      }
+    }
+    return s;
+  }
   if (typeof loc === "object") {
     const { address, area, city, state, pincode } = loc;
-    return [address, area, city, state, pincode].filter(Boolean).join(", ");
+    const str = [address, area, city, state, pincode].filter(Boolean).join(", ");
+    return str || "Unknown";
   }
-
   return "Unknown";
 };
 
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(false);
+  const { wishlistProductIds, toggleWishlist } = useUserStore();
+  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  const isMobile = width < 640;
+  const isTablet = width >= 640 && width < 1024;
 
   if (!product) return null;
 
   const finalLocation = normalizeLocation(product.location);
+  const productId = product.id || product._id;
+  const isLiked = productId ? wishlistProductIds.includes(String(productId)) : false;
+
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // PRODUCT ONLY
   const isNew = product.type === "Product" && product.condition === "New";
@@ -41,7 +65,9 @@ export default function ProductCard({ product }) {
   // ------------------------------
   const handleLike = (e) => {
     e.stopPropagation();
-    setIsLiked((prev) => !prev);
+    if (productId) {
+      toggleWishlist(String(productId));
+    }
   };
 
   // ------------------------------
@@ -80,7 +106,7 @@ export default function ProductCard({ product }) {
     },
     imageWrapper: {
       width: "100%",
-      paddingTop: "70%",
+      paddingTop: isMobile ? "62%" : "70%",
       position: "relative",
       backgroundColor: "#f1f5f9",
     },
@@ -101,7 +127,7 @@ export default function ProductCard({ product }) {
       justifyContent: "space-between",
     },
     tag: {
-      fontSize: "10px",
+      fontSize: isMobile ? "9px" : "10px",
       fontWeight: "700",
       padding: "4px 8px",
       borderRadius: "4px",
@@ -111,11 +137,12 @@ export default function ProductCard({ product }) {
       gap: "4px",
     },
     tagNew: { backgroundColor: "#10b981" },
+    tagRent: { backgroundColor: "#f59e0b" },
     tagCondition: { backgroundColor: "#3b82f6" },
     tagJob: { backgroundColor: "#9333ea" },
     heartBtn: {
-      width: "32px",
-      height: "32px",
+      width: isMobile ? "28px" : "32px",
+      height: isMobile ? "28px" : "32px",
       borderRadius: "50%",
       backgroundColor: "rgba(255,255,255,0.95)",
       display: "flex",
@@ -126,19 +153,19 @@ export default function ProductCard({ product }) {
       transition: "0.1s",
     },
     content: {
-      padding: "16px",
+      padding: isMobile ? "12px" : "16px",
       display: "flex",
       flexDirection: "column",
       gap: "6px",
       flex: 1,
     },
     price: {
-      fontSize: "18px",
+      fontSize: isMobile ? "16px" : "18px",
       fontWeight: "700",
       color: "#0f172a",
     },
     title: {
-      fontSize: "15px",
+      fontSize: isMobile ? "14px" : "15px",
       fontWeight: "500",
       color: "#334155",
       whiteSpace: "nowrap",
@@ -149,20 +176,20 @@ export default function ProductCard({ product }) {
       display: "flex",
       alignItems: "center",
       gap: "4px",
-      fontSize: "12px",
+      fontSize: isMobile ? "11px" : "12px",
       color: "#94a3b8",
     },
     divider: {
       height: "1px",
       backgroundColor: "#f1f5f9",
-      margin: "8px 0",
+      margin: isMobile ? "6px 0" : "8px 0",
     },
     seller: {
       display: "flex",
       alignItems: "center",
       gap: "4px",
       color: "#64748b",
-      fontSize: "12px",
+      fontSize: isMobile ? "11px" : "12px",
     },
   };
 
@@ -231,7 +258,11 @@ export default function ProductCard({ product }) {
       {/* CONTENT */}
       {/* ------------------------------ */}
       <div style={styles.content}>
-        <span style={styles.price}>{product.price}</span>
+        <span style={styles.price}>
+          {product.type === "rent"
+            ? `₹${product.rentalPrice || product.price}/${product.rentalPeriod || "mo"}`
+            : product.price}
+        </span>
 
         <div style={styles.title}>{product.title}</div>
 

@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "../../lib/axios";
+import toast from "react-hot-toast";
+import { useUserStore } from "../../store/userStore.js";
+import Navbar from "../../components/navbar.jsx";
 
 // ------------------------------------
 // NORMALIZE LOCATION
@@ -36,10 +40,15 @@ const Skeleton = () => (
 // ------------------------------------
 export default function ServiceDetail() {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { isAuthenticated, startConversation } = useUserStore();
     const [service, setService] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [contactLoading, setContactLoading] = useState(false);
 
     const [activeImage, setActiveImage] = useState(null);
+    const [reportReason, setReportReason] = useState("");
+    const [reportMessage, setReportMessage] = useState("");
 
     useEffect(() => {
         fetchService();
@@ -47,17 +56,16 @@ export default function ServiceDetail() {
 
     const fetchService = async () => {
         try {
-            const res = await fetch(`http://localhost:5000/api/services/${id}`);
-            const data = await res.json();
+            const res = await axios.get(`/api/services/${id}`);
+            const data = res.data;
 
             const svc = data.data || data.service;
 
             setService(svc);
-            setActiveImage(
-                svc?.images?.length > 0
-                    ? svc.images[0]
-                    : svc?.image || "https://via.placeholder.com/600"
-            );
+            const firstImg = Array.isArray(svc?.images) && svc.images.length > 0
+                ? (typeof svc.images[0] === "string" ? svc.images[0] : (svc.images[0]?.url || svc.image))
+                : (svc?.image || "https://via.placeholder.com/600");
+            setActiveImage(firstImg);
 
             setLoading(false);
         } catch (err) {
@@ -66,14 +74,65 @@ export default function ServiceDetail() {
         }
     };
 
-    if (loading) return <Skeleton />;
+    const handleContact = async () => {
+        if (!isAuthenticated) {
+            toast.error("Please login to contact provider");
+            navigate("/login");
+            return;
+        }
+        const providerId = service.provider?._id || service.provider;
+        if (!providerId) {
+            toast.error("Provider info missing");
+            return;
+        }
+        
+        const myId = useUserStore.getState().user?._id;
+        if (myId === providerId) {
+            toast.error("You cannot chat with yourself");
+            return;
+        }
+
+        setContactLoading(true);
+        try {
+            const { success, conversationId, error } = await startConversation({
+                recipientId: providerId,
+                productId: service._id,
+                contextType: "Service"
+            });
+            
+            if (success && conversationId) {
+                // Send initial inquiry message
+                await useUserStore.getState().sendMessage(conversationId, `Hi, I'm interested in your service "${service.title}".`);
+                navigate("/messages");
+            } else {
+                toast.error(error || "Failed to start chat");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong");
+        } finally {
+            setContactLoading(false);
+        }
+    };
+
+    if (loading) return (
+        <>
+            <Navbar />
+            <Skeleton />
+        </>
+    );
     if (!service)
         return (
-            <h2 style={{ textAlign: "center", marginTop: 60 }}>Service Not Found</h2>
+            <>
+                <Navbar />
+                <h2 style={{ textAlign: "center", marginTop: 60 }}>Service Not Found</h2>
+            </>
         );
 
     return (
-        <div style={styles.page}>
+        <>
+            <Navbar />
+            <div style={styles.page}>
             {/* ---------------------------------- */}
             {/* IMAGE GALLERY + DETAILS */}
             {/* ---------------------------------- */}
@@ -88,7 +147,7 @@ export default function ServiceDetail() {
                             (img, i) => (
                                 <img
                                     key={i}
-                                    src={img}
+                                    src={typeof img === "string" ? img : (img?.url || service.image)}
                                     alt="thumb"
                                     style={{
                                         ...styles.thumbnail,
@@ -97,7 +156,7 @@ export default function ServiceDetail() {
                                                 ? "3px solid #2563eb"
                                                 : "2px solid #e2e8f0",
                                     }}
-                                    onClick={() => setActiveImage(img)}
+                                    onClick={() => setActiveImage(typeof img === "string" ? img : (img?.url || service.image))}
                                 />
                             )
                         )}
@@ -133,7 +192,55 @@ export default function ServiceDetail() {
                         </span>
                     </div>
 
-                    <button style={styles.contactBtn}>Contact Provider</button>
+                    <button 
+                        style={{...styles.contactBtn, opacity: contactLoading ? 0.7 : 1, cursor: contactLoading ? 'not-allowed' : 'pointer'}} 
+                        onClick={handleContact}
+                        disabled={contactLoading}
+                    >
+                        {contactLoading ? "Processing..." : "Contact Provider"}
+                    </button>
+                    <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 8 }}>
+                        <div style={{ fontWeight: "bold", marginBottom: 8 }}>Report Service</div>
+                        <select
+                            value={reportReason}
+                            onChange={(e) => setReportReason(e.target.value)}
+                            style={{ width: "100%", padding: 8, marginBottom: 8 }}
+                        >
+                            <option value="">Select a reason</option>
+                            <option value="spam">Spam or misleading</option>
+                            <option value="fraud">Fraud or fake</option>
+                            <option value="inappropriate">Inappropriate content</option>
+                            <option value="duplicate">Duplicate listing</option>
+                            <option value="illegal">Illegal service</option>
+                        </select>
+                        <textarea
+                            placeholder="Optional details"
+                            value={reportMessage}
+                            onChange={(e) => setReportMessage(e.target.value)}
+                            style={{ width: "100%", padding: 8, minHeight: 80, marginBottom: 8 }}
+                        />
+                        <button
+                            onClick={async () => {
+                                try {
+                                    const token = useUserStore.getState().accessToken;
+                                    if (!token) { toast.error("Please login to report"); return; }
+                                    if (!reportReason) { toast.error("Select a reason"); return; }
+                                    await axios.post(
+                                        `/api/reports/service/${service._id}`,
+                                        { reason: reportReason, message: reportMessage }
+                                    );
+                                    toast.success("Report submitted");
+                                    setReportReason("");
+                                    setReportMessage("");
+                                } catch (e) {
+                                    toast.error(e.response?.data?.message || "Failed to submit report");
+                                }
+                            }}
+                            style={{ padding: "8px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6 }}
+                        >
+                            Report
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -181,7 +288,8 @@ export default function ServiceDetail() {
                     </p>
                 </div>
             </div>
-        </div>
+            </div>
+        </>
     );
 }
 

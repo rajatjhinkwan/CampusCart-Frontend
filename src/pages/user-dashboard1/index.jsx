@@ -1,6 +1,6 @@
 // pages/user-dashboard/index.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from '../../lib/axios';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { MetricCard } from './components/MetricCard';
@@ -94,15 +94,18 @@ export default function UserDashboard() {
     return () => window.removeEventListener('resize', updateLayout);
   }, []);
 
+  const [carbonData, setCarbonData] = useState([]);
+  const [carbonTotal, setCarbonTotal] = useState(0);
+  const [wasteAvoidedKg, setWasteAvoidedKg] = useState(0);
+
   useEffect(() => {
     const run = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const [meRes, productsRes, convsRes] = await Promise.all([
-          axios.get('http://localhost:5000/api/users/me', { headers }),
-          axios.get('http://localhost:5000/api/products/my-products', { headers }),
-          axios.get('http://localhost:5000/api/conversations', { headers }),
+       const [meRes, productsRes, convsRes, envRes] = await Promise.all([
+          axios.get('/api/users/me'),
+          axios.get('/api/products/my-products'),
+          axios.get('/api/conversations'),
+          axios.get('/api/users/me/environment'),
         ]);
         const me = meRes.data?.user || meRes.data || {};
         const userId = me?._id || me?.id || '';
@@ -130,24 +133,74 @@ export default function UserDashboard() {
         const changeStr = (Number(rateFixed) >= 0 ? `+${rateFixed}%` : `${rateFixed}%`);
         const trendDir = Number(rateFixed) >= 0 ? 'up' : 'down';
 
+        const coeff = {
+          Laptop: 200,
+          Mobile: 70,
+          Furniture: 100,
+          Fashion: 25,
+          Electronics: 120,
+          Default: 60,
+        };
+        const savedFactor = 0.7;
+        const byCat = {};
+        const harmCoeff = {
+          Laptop: 3.0,
+          Mobile: 1.8,
+          Furniture: 5.0,
+          Fashion: 0.8,
+          Electronics: 2.5,
+          Default: 1.0,
+        };
+        const avoidedHarmFactor = 0.6;
+        const harmByCat = {};
+        sold.forEach((p) => {
+          const cat = p.category || p.categoryName || 'Default';
+          const base = coeff[cat] ?? coeff.Default;
+          const saved = base * savedFactor;
+          byCat[cat] = (byCat[cat] || 0) + saved;
+          const harmBase = harmCoeff[cat] ?? harmCoeff.Default;
+          const harmAvoided = harmBase * avoidedHarmFactor;
+          harmByCat[cat] = (harmByCat[cat] || 0) + harmAvoided;
+        });
+        const chart = Object.keys(byCat).map((k) => ({ category: k, savedKgCO2: Number(byCat[k].toFixed(1)) }));
+        const totalSaved = envRes.data?.totalSaved ?? chart.reduce((s, r) => s + r.savedKgCO2, 0);
+        const wasteKg = envRes.data?.wasteAvoided ?? sold.length * 1.5;
+        const harmChart = envRes.data?.harmChart ?? Object.keys(harmByCat).map((k) => ({ category: k, avoidedKg: Number(harmByCat[k].toFixed(2)) }));
+        const harmAvoidedTotal = envRes.data?.harmAvoidedTotal ?? harmChart.reduce((s, r) => s + r.avoidedKg, 0);
+        const harmNewTotal = envRes.data?.harmNewTotal ?? sold.reduce((s, p) => {
+          const cat = p.category || p.categoryName || 'Default';
+          const harmBase = harmCoeff[cat] ?? harmCoeff.Default;
+          return s + harmBase;
+        }, 0);
+
+        setCarbonData(chart);
+        setCarbonTotal(Number(totalSaved.toFixed(1)));
+        setWasteAvoidedKg(Number(wasteKg.toFixed(1)));
+
         setMetrics([
           { title: 'Total Revenue', value: `₹${revenueSum}`, change: '', trend: 'up', icon: DollarSign },
           { title: 'Active Users', value: String(participantSet.size), change: '', trend: 'up', icon: Users },
           { title: 'Total Orders', value: String(sold.length), change: '', trend: 'up', icon: ShoppingCart },
           { title: 'Growth Rate', value: `${rateFixed}%`, change: changeStr, trend: trendDir, icon: TrendingUp },
         ]);
+        setHarmStats({ harmChart, harmAvoidedTotal: Number(harmAvoidedTotal.toFixed(2)), harmNewTotal: Number(harmNewTotal.toFixed(2)) });
       } catch {
+        setCarbonData([]);
+        setCarbonTotal(0);
+        setWasteAvoidedKg(0);
         setMetrics([
           { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: DollarSign },
           { title: 'Active Users', value: '0', change: '', trend: 'up', icon: Users },
           { title: 'Total Orders', value: '0', change: '', trend: 'up', icon: ShoppingCart },
           { title: 'Growth Rate', value: '0.0%', change: '', trend: 'up', icon: TrendingUp },
         ]);
+        setHarmStats({ harmChart: [], harmAvoidedTotal: 0, harmNewTotal: 0 });
       }
     };
     run();
   }, []);
 
+  const [harmStats, setHarmStats] = useState({ harmChart: [], harmAvoidedTotal: 0, harmNewTotal: 0 });
   // PAGE RENDER LOGIC
   const renderPage = () => {
     switch (selectedPage) {
@@ -177,10 +230,65 @@ export default function UserDashboard() {
             <div style={styles.chartsGrid(isDesktopLayout)}>
               <SalesChart />
               <RecentActivity />
+              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 16 }}>
+                <div style={{ fontSize: 18, fontWeight: 600, color: '#111827', marginBottom: 8 }}>Carbon Impact (kg CO₂ saved)</div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
+                  Total saved: {carbonTotal} kg CO₂ • E‑waste avoided: {wasteAvoidedKg} kg
+                </div>
+                <div style={{ width: '100%', height: 260 }}>
+                  {/* Simple inline bar chart without separate component */}
+                  {carbonData.length === 0 ? (
+                    <div style={{ color: '#6b7280' }}>No sold items yet</div>
+                  ) : (
+                    <svg width="100%" height="100%" viewBox={`0 0 ${carbonData.length * 60} 240`} preserveAspectRatio="none">
+                      {carbonData.map((d, i) => {
+                        const max = Math.max(...carbonData.map(c => c.savedKgCO2)) || 1;
+                        const barH = (d.savedKgCO2 / max) * 180;
+                        const x = i * 60 + 20;
+                        const y = 200 - barH;
+                        return (
+                          <g key={d.category}>
+                            <rect x={x} y={y} width={28} height={barH} fill="#2563EB" rx="6" />
+                            <text x={x + 14} y={220} fontSize="12" textAnchor="middle" fill="#374151">{d.category}</text>
+                            <text x={x + 14} y={y - 6} fontSize="12" textAnchor="middle" fill="#111827">{d.savedKgCO2}</text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+                </div>
+              </div>
+              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e5e7eb', padding: 16 }}>
+                <div style={{ fontSize: 18, fontWeight: 600, color: '#111827', marginBottom: 8 }}>Harmful Waste Impact (kg)</div>
+                <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
+                  New item impact: {harmStats.harmNewTotal} kg • Avoided by reuse: {harmStats.harmAvoidedTotal} kg
+                </div>
+                <div style={{ width: '100%', height: 240 }}>
+                  {harmStats.harmChart.length === 0 ? (
+                    <div style={{ color: '#6b7280' }}>No sold items yet</div>
+                  ) : (
+                    <svg width="100%" height="100%" viewBox={`0 0 ${harmStats.harmChart.length * 60} 220`} preserveAspectRatio="none">
+                      {harmStats.harmChart.map((d, i) => {
+                        const max = Math.max(...harmStats.harmChart.map(c => c.avoidedKg)) || 1;
+                        const barH = (d.avoidedKg / max) * 160;
+                        const x = i * 60 + 20;
+                        const y = 180 - barH;
+                        return (
+                          <g key={d.category}>
+                            <rect x={x} y={y} width={28} height={barH} fill="#10B981" rx="6" />
+                            <text x={x + 14} y={200} fontSize="12" textAnchor="middle" fill="#374151">{d.category}</text>
+                            <text x={x + 14} y={y - 6} fontSize="12" textAnchor="middle" fill="#111827">{d.avoidedKg}</text>
+                          </g>
+                        );
+                      })}
+                    </svg>
+                  )}
+                </div>
+              </div>
             </div>
           </>
         );
-    }
+      }
   };
 
   return (

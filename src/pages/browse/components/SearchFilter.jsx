@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
+import axios from "../../../lib/axios";
 import {
   Filter, MapPin, Tag, Calendar,
   RotateCcw, Search
 } from "lucide-react";
 
 // This component receives 'filters' and 'setFilters' from the parent
-const SearchFilter = ({ filters = {}, setFilters }) => {
+// Add 'type' to adapt filters for Products, Rooms, Services
+const SearchFilter = ({ filters = {}, setFilters, type = "Products" }) => {
   // --- Local State (UI) ---
   const [category, setCategory] = useState("");
   const [location, setLocation] = useState("");
@@ -13,11 +15,44 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
   const [maxPrice, setMaxPrice] = useState("");
   const [conditions, setConditions] = useState([]);
   const [datePosted, setDatePosted] = useState("");
+  // Rooms-specific
+  const [roomType, setRoomType] = useState("");
+  const [furnished, setFurnished] = useState("");
+  const [bhk, setBhk] = useState("");
+  // Services-specific
+  const [searchText, setSearchText] = useState("");
+  const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
+  const isMobile = width < 640;
 
   // --- Static Data (Could be passed as props too) ---
-  const categories = ["Electronics", "Vehicles", "Property", "Jobs", "Services", "Fashion"];
+  const [productCategories, setProductCategories] = useState([]);
   const locations = ["Kuthiyal-Sain", "Chamoli", "Gopeshwar", "Mandal", "Nandprayag", "Pursadi"];
   const conditionOptions = ["New", "Like New", "Used"];
+  const roomTypes = ["Single Room", "Double Room", "1BHK", "2BHK", "Hostel Bed", "PG", "Short-Term Stay", "Other"];
+  const furnishingOptions = ["Furnished", "Semi-Furnished", "Unfurnished"];
+
+  // Fetch categories for Products tab
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      if (type !== "Products") return;
+      try {
+        const res = await axios.get("/api/categories", { params: { type: "product" } });
+        const cats = res.data?.categories || res.data?.data || [];
+        if (mounted) setProductCategories(cats);
+      } catch {
+        // fallback: empty list
+        if (mounted) setProductCategories([]);
+      }
+    })();
+    return () => { mounted = false; };
+  }, [type]);
+
+  useEffect(() => {
+    const onResize = () => setWidth(window.innerWidth);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
 
   // Sync local UI state when parent filters change (so UI reflects applied filters)
   useEffect(() => {
@@ -34,7 +69,7 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
 
     // Populate local values from filters (defensive)
     setCategory(filters.category || "");
-    setLocation(filters.location || "");
+    setLocation(filters.location || filters.city || "");
     setMinPrice(filters.minPrice ?? "");
     setMaxPrice(filters.maxPrice ?? "");
 
@@ -61,6 +96,12 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
     } else {
       setDatePosted("");
     }
+    // Rooms-specific
+    setRoomType(filters.roomType || "");
+    setFurnished(filters.furnished || "");
+    setBhk(filters.bhk ?? "");
+    // Services-specific
+    setSearchText(filters.search || "");
   }, [filters]);
 
   // --- Handlers ---
@@ -97,15 +138,37 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
   const handleApplyFilters = () => {
     const applied = {};
 
-    if (category) applied.category = category;
-    if (location) applied.location = location;
-    if (minPrice !== "" && minPrice !== null) applied.minPrice = minPrice;
-    if (maxPrice !== "" && maxPrice !== null) applied.maxPrice = maxPrice;
-    if (conditions && conditions.length > 0) applied.conditions = conditions.join(","); // backend expects comma-separated string
-    const days = mapDatePostedToDays(datePosted);
-    if (days !== undefined) applied.datePosted = days;
+    if (type === "Products") {
+      if (category) applied.category = category;
+      // products controller expects condition (singular). Use first selected
+      if (conditions && conditions.length > 0) applied.condition = conditions[0];
+      if (location) applied.location = location;
+      if (minPrice !== "" && minPrice !== null) applied.minPrice = minPrice;
+      if (maxPrice !== "" && maxPrice !== null) applied.maxPrice = maxPrice;
+      const days = mapDatePostedToDays(datePosted);
+      if (days !== undefined) applied.datePosted = days;
+    } else if (type === "Rooms") {
+      if (location) applied.city = location;
+      if (minPrice !== "" && minPrice !== null) applied.minPrice = minPrice;
+      if (maxPrice !== "" && maxPrice !== null) applied.maxPrice = maxPrice;
+      if (roomType) applied.roomType = roomType;
+      if (furnished) applied.furnished = furnished;
+      if (bhk !== "" && bhk !== null) applied.bhk = bhk;
+      const days = mapDatePostedToDays(datePosted);
+      if (days !== undefined) applied.datePosted = days;
+    } else if (type === "Services") {
+      if (category) applied.category = category;
+      if (location) applied.city = location;
+      if (minPrice !== "" && minPrice !== null) applied.minPrice = minPrice;
+      if (maxPrice !== "" && maxPrice !== null) applied.maxPrice = maxPrice;
+      if (searchText) applied.search = searchText;
+    } else {
+      if (category) applied.category = category;
+      if (location) applied.location = location;
+      if (minPrice !== "" && minPrice !== null) applied.minPrice = minPrice;
+      if (maxPrice !== "" && maxPrice !== null) applied.maxPrice = maxPrice;
+    }
 
-    // update parent filters
     if (typeof setFilters === "function") setFilters(applied);
   };
 
@@ -113,10 +176,10 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
   const styles = {
     container: {
       width: "100%",
-      maxWidth: "300px",
+      maxWidth: isMobile ? "100%" : "300px",
       backgroundColor: "#ffffff",
       borderRadius: "16px",
-      padding: "20px",
+      padding: isMobile ? "14px" : "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
       boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.15), 0 2px 4px -1px rgba(0, 0, 0, 0.13)",
       border: "1px solid #e2e8f0",
@@ -124,23 +187,23 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
     },
     headerRow: {
       display: "flex", justifyContent: "space-between", alignItems: "center",
-      marginBottom: "20px", paddingBottom: "16px", borderBottom: "1px solid #f1f5f9",
+      marginBottom: isMobile ? "14px" : "20px", paddingBottom: isMobile ? "12px" : "16px", borderBottom: "1px solid #f1f5f9",
     },
-    title: { fontSize: "18px", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" },
-    clearBtn: { fontSize: "12px", color: "#ef4444", cursor: "pointer", background: "none", border: "none", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" },
-    section: { marginBottom: "24px" },
-    label: { fontSize: "13px", fontWeight: "600", color: "#334155", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" },
+    title: { fontSize: isMobile ? "16px" : "18px", fontWeight: "700", color: "#0f172a", display: "flex", alignItems: "center", gap: "8px" },
+    clearBtn: { fontSize: isMobile ? "11px" : "12px", color: "#ef4444", cursor: "pointer", background: "none", border: "none", fontWeight: "600", display: "flex", alignItems: "center", gap: "4px" },
+    section: { marginBottom: isMobile ? "18px" : "24px" },
+    label: { fontSize: isMobile ? "12px" : "13px", fontWeight: "600", color: "#334155", marginBottom: "8px", display: "flex", alignItems: "center", gap: "6px" },
     input: {
-      width: "100%", padding: "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1",
-      fontSize: "14px", color: "#1e293b", outline: "none", backgroundColor: "#f8fafc", boxSizing: "border-box",
+      width: "100%", padding: isMobile ? "8px 10px" : "10px 12px", borderRadius: "8px", border: "1px solid #cbd5e1",
+      fontSize: isMobile ? "13px" : "14px", color: "#1e293b", outline: "none", backgroundColor: "#f8fafc", boxSizing: "border-box",
     },
-    priceGroup: { display: "flex", gap: "10px", alignItems: "center" },
-    checkboxGroup: { display: "flex", flexDirection: "column", gap: "8px" },
-    checkboxLabel: { display: "flex", alignItems: "center", fontSize: "14px", color: "#475569", cursor: "pointer" },
-    checkbox: { marginRight: "8px", accentColor: "#2563eb", width: "16px", height: "16px", cursor: "pointer" },
+    priceGroup: { display: "flex", gap: isMobile ? "8px" : "10px", alignItems: "center" },
+    checkboxGroup: { display: "flex", flexDirection: "column", gap: isMobile ? "6px" : "8px" },
+    checkboxLabel: { display: "flex", alignItems: "center", fontSize: isMobile ? "13px" : "14px", color: "#475569", cursor: "pointer" },
+    checkbox: { marginRight: "8px", accentColor: "#2563eb", width: isMobile ? "14px" : "16px", height: isMobile ? "14px" : "16px", cursor: "pointer" },
     applyBtn: {
-      width: "100%", padding: "12px", backgroundColor: "#2563eb", color: "#ffffff",
-      border: "none", borderRadius: "8px", fontWeight: "600", fontSize: "14px", cursor: "pointer",
+      width: "100%", padding: isMobile ? "10px" : "12px", backgroundColor: "#2563eb", color: "#ffffff",
+      border: "none", borderRadius: "8px", fontWeight: "600", fontSize: isMobile ? "13px" : "14px", cursor: "pointer",
       display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
       transition: "background-color 0.2s",
     },
@@ -156,14 +219,20 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
         </button>
       </div>
 
-      {/* Category */}
-      <div style={styles.section}>
-        <label style={styles.label}><Tag size={14} /> Category</label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} style={styles.input}>
-          <option value="">All Categories</option>
-          {categories.map((cat) => <option key={cat} value={cat}>{cat}</option>)}
-        </select>
-      </div>
+      {/* Category (Products only) */}
+      {type === "Products" && (
+        <div style={styles.section}>
+          <label style={styles.label}><Tag size={14} /> Category</label>
+          <select value={category} onChange={(e) => setCategory(e.target.value)} style={styles.input}>
+            <option value="">All Categories</option>
+            {productCategories.map((cat) => (
+              <option key={cat._id || cat.id} value={cat._id || cat.id}>
+                {cat.title || cat.name || "Category"}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Location */}
       <div style={styles.section}>
@@ -184,18 +253,20 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
         </div>
       </div>
 
-      {/* Condition */}
-      <div style={styles.section}>
-        <label style={styles.label}>Condition</label>
-        <div style={styles.checkboxGroup}>
-          {conditionOptions.map((cond) => (
-            <label key={cond} style={styles.checkboxLabel}>
-              <input type="checkbox" checked={conditions.includes(cond)} onChange={() => handleConditionChange(cond)} style={styles.checkbox} />
-              {cond}
-            </label>
-          ))}
+      {/* Condition (Products only) */}
+      {type === "Products" && (
+        <div style={styles.section}>
+          <label style={styles.label}>Condition</label>
+          <div style={styles.checkboxGroup}>
+            {conditionOptions.map((cond) => (
+              <label key={cond} style={styles.checkboxLabel}>
+                <input type="checkbox" checked={conditions.includes(cond)} onChange={() => handleConditionChange(cond)} style={styles.checkbox} />
+                {cond}
+              </label>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Date Posted */}
       <div style={styles.section}>
@@ -207,6 +278,44 @@ const SearchFilter = ({ filters = {}, setFilters }) => {
           <option value="this_month">Last 30 days</option>
         </select>
       </div>
+
+      {/* Rooms specific filters */}
+      {type === "Rooms" && (
+        <>
+          <div style={styles.section}>
+            <label style={styles.label}>Room Type</label>
+            <select value={roomType} onChange={(e) => setRoomType(e.target.value)} style={styles.input}>
+              <option value="">Any</option>
+              {roomTypes.map((rt) => <option key={rt} value={rt}>{rt}</option>)}
+            </select>
+          </div>
+          <div style={styles.section}>
+            <label style={styles.label}>Furnished</label>
+            <select value={furnished} onChange={(e) => setFurnished(e.target.value)} style={styles.input}>
+              <option value="">Any</option>
+              {furnishingOptions.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
+          <div style={styles.section}>
+            <label style={styles.label}>BHK</label>
+            <input type="number" placeholder="e.g., 1 or 2" value={bhk} onChange={(e) => setBhk(e.target.value)} style={styles.input} />
+          </div>
+        </>
+      )}
+
+      {/* Services specific filters */}
+      {type === "Services" && (
+        <div style={styles.section}>
+          <label style={styles.label}>Search</label>
+          <input
+            type="text"
+            placeholder="e.g., plumber, tutor"
+            value={searchText}
+            onChange={(e) => setSearchText(e.target.value)}
+            style={styles.input}
+          />
+        </div>
+      )}
 
       {/* Apply Button */}
       <button onClick={handleApplyFilters} style={styles.applyBtn} type="button">

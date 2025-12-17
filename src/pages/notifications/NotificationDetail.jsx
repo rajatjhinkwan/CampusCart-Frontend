@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import { useParams, useNavigate } from "react-router-dom";
-import Navbar from "../../components/Navbar.jsx";
+import Navbar from "../../components/navbar.jsx";
 
 export default function NotificationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [item, setItem] = useState(null);
-  const accessToken = localStorage.getItem("accessToken");
+
   const accents = {
     product: { bg: "#fffbeb", border: "#fde68a" },
     room: { bg: "#ecfdf5", border: "#a7f3d0" },
@@ -28,7 +28,7 @@ export default function NotificationDetail() {
   const load = async () => {
     try {
       const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}`;
-      const res = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const res = await axios.get(url);
       setItem(res.data);
     } catch (e) {
       console.error(e);
@@ -44,7 +44,7 @@ export default function NotificationDetail() {
   const markRead = async () => {
     try {
       const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}/read`;
-      const res = await axios.patch(url, {}, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const res = await axios.patch(url, {});
       setItem(res.data);
     } catch (e) {
       console.error(e);

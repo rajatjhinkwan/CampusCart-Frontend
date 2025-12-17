@@ -1,26 +1,14 @@
 // FILE: src/pages/productPage/components/SellerInfo.jsx
 
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useUserStore } from "../../../store/userStore";
 
-const SellerInfo = ({ seller }) => {
-  // If seller is not loaded yet
-  if (!seller) {
-    return (
-      <div
-        style={{
-          padding: "20px",
-          border: "1px solid #ddd",
-          borderRadius: "6px",
-          background: "#fff",
-          marginTop: "20px",
-          textAlign: "center",
-          color: "#777",
-        }}
-      >
-        Loading seller details...
-      </div>
-    );
-  }
+const SellerInfo = ({ seller, productId }) => {
+  const navigate = useNavigate();
+  const isAuthenticated = useUserStore((s) => s.isAuthenticated);
+  const user = useUserStore((s) => s.user);
+  const startConversation = useUserStore((s) => s.startConversation);
 
   // Safely extract values
   const sellerName = seller?.name || "Unknown Seller";
@@ -60,6 +48,39 @@ const SellerInfo = ({ seller }) => {
     },
   };
 
+  if (!seller) {
+    return (
+      <div
+        style={{
+          padding: "20px",
+          border: "1px solid #ddd",
+          borderRadius: "6px",
+          background: "#fff",
+          marginTop: "20px",
+          textAlign: "center",
+          color: "#777",
+        }}
+      >
+        Loading seller details...
+      </div>
+    );
+  }
+
+  const handleChat = async () => {
+    if (!isAuthenticated) {
+      navigate("/user-login");
+      return;
+    }
+    const sellerId = seller?._id || seller?.id;
+    const myId = user?._id || user?.id;
+    if (!sellerId || String(sellerId) === String(myId)) {
+      navigate("/user-messages");
+      return;
+    }
+    await startConversation({ recipientId: sellerId, productId });
+    navigate("/user-messages");
+  };
+
   return (
     <div style={styles.card}>
       <div style={styles.row}>
@@ -70,7 +91,7 @@ const SellerInfo = ({ seller }) => {
         </div>
       </div>
 
-      <button style={styles.chatButton}>Chat with Seller</button>
+      <button style={styles.chatButton} onClick={handleChat}>Chat with Seller</button>
     </div>
   );
 };

@@ -13,18 +13,21 @@ export default function Step4({ data = {}, onNext, onBack, categoryType, jobType
     jobType: jobType || "",
     experience: data.experience || "",
     skills: data.skills || [],
+    
+    // 🆕 RENTAL FIELDS
+    transactionType: data.transactionType || "sell",
+    rentalPeriod: data.rentalPeriod || "Monthly",
+    securityDeposit: data.securityDeposit || "",
   });
 
   // 2. Handle local input changes
   function handleChange(e) {
     const { name, value } = e.target;
-    // Update local state only
     setForm((prev) => ({ ...prev, [name]: value }));
   }
 
   // 3. Handle Next button click
   const handleNextClick = () => {
-    // Send the complete local state to the parent
     onNext(form);
   };
 
@@ -37,7 +40,12 @@ export default function Step4({ data = {}, onNext, onBack, categoryType, jobType
   } else if (categoryType === "Service") {
     isNextDisabled = !form.rate;
   } else {
-    isNextDisabled = !form.mode || !form.price;
+    // Product validation
+    if (form.transactionType === "rent") {
+        isNextDisabled = !form.price || !form.rentalPeriod; // reusing 'price' for rental price
+    } else {
+        isNextDisabled = !form.mode || !form.price;
+    }
   }
 
   return (
@@ -137,55 +145,128 @@ export default function Step4({ data = {}, onNext, onBack, categoryType, jobType
       ) : (
         <>
           {/* Product pricing fields */}
-          <div style={styles.fieldRelative}>
-            <label style={styles.label}>Pricing Mode</label>
-            <select
-              name="mode"
-              value={form.mode}
-              onChange={handleChange}
-              style={styles.input}
-            >
-              <option value="">Select Pricing Mode</option>
-              <option value="Negotiable">Negotiable</option>
-              <option value="Fixed">Fixed Price</option>
-            </select>
-            {form.mode === "Negotiable" && (
-              <span style={styles.negotiableBadge}>
-                Negotiable
-              </span>
-            )}
+          <div style={styles.field}>
+            <label style={styles.label}>I want to:</label>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, transactionType: 'sell' }))}
+                style={{
+                  ...styles.typeButton,
+                  backgroundColor: form.transactionType === 'sell' ? '#000' : '#f3f4f6',
+                  color: form.transactionType === 'sell' ? '#fff' : '#000',
+                }}
+              >
+                Sell
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, transactionType: 'rent' }))}
+                style={{
+                  ...styles.typeButton,
+                  backgroundColor: form.transactionType === 'rent' ? '#000' : '#f3f4f6',
+                  color: form.transactionType === 'rent' ? '#fff' : '#000',
+                }}
+              >
+                Rent
+              </button>
+            </div>
           </div>
 
-          {/* 2. Price Input (Shows only if mode is selected) */}
-          {form.mode && (
-            <div style={styles.field}>
-              <label style={styles.label}>
-                {form.mode === "Negotiable" ? "Expected Price (₹)" : "Price (₹)"}
-              </label>
-              <input
-                type="number"
-                name="price"
-                placeholder="Enter price"
-                value={form.price}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
-          )}
+          {form.transactionType === 'sell' ? (
+            <>
+              <div style={styles.fieldRelative}>
+                <label style={styles.label}>Pricing Mode</label>
+                <select
+                  name="mode"
+                  value={form.mode}
+                  onChange={handleChange}
+                  style={styles.input}
+                >
+                  <option value="">Select Pricing Mode</option>
+                  <option value="Negotiable">Negotiable</option>
+                  <option value="Fixed">Fixed Price</option>
+                </select>
+                {form.mode === "Negotiable" && (
+                  <span style={styles.negotiableBadge}>
+                    Negotiable
+                  </span>
+                )}
+              </div>
 
-          {/* 3. Minimum Price Input (Shows only if mode is Negotiable) */}
-          {form.mode === "Negotiable" && (
-            <div style={styles.field}>
-              <label style={styles.label}>Minimum Accepted Price (₹)</label>
-              <input
-                type="number"
-                name="minPrice"
-                placeholder="Optional"
-                value={form.minPrice}
-                onChange={handleChange}
-                style={styles.input}
-              />
-            </div>
+              {/* 2. Price Input (Shows only if mode is selected) */}
+              {form.mode && (
+                <div style={styles.field}>
+                  <label style={styles.label}>
+                    {form.mode === "Negotiable" ? "Expected Price (₹)" : "Price (₹)"}
+                  </label>
+                  <input
+                    type="number"
+                    name="price"
+                    placeholder="Enter price"
+                    value={form.price}
+                    onChange={handleChange}
+                    style={styles.input}
+                  />
+                </div>
+              )}
+
+              {/* 3. Minimum Price Input (Shows only if mode is Negotiable) */}
+              {form.mode === "Negotiable" && (
+                <div style={styles.field}>
+                  <label style={styles.label}>Minimum Accepted Price (₹)</label>
+                  <input
+                    type="number"
+                    name="minPrice"
+                    placeholder="Optional"
+                    value={form.minPrice}
+                    onChange={handleChange}
+                    style={styles.input}
+                  />
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              {/* RENTAL FIELDS */}
+              <div style={styles.field}>
+                <label style={styles.label}>Rental Price (₹)</label>
+                <input
+                  type="number"
+                  name="price" // reusing 'price' field for rental price
+                  placeholder="e.g. 500"
+                  value={form.price}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>Per</label>
+                <select
+                  name="rentalPeriod"
+                  value={form.rentalPeriod}
+                  onChange={handleChange}
+                  style={styles.input}
+                >
+                  <option value="Daily">Day</option>
+                  <option value="Weekly">Week</option>
+                  <option value="Monthly">Month</option>
+                </select>
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>Security Deposit (₹) (Optional)</label>
+                <input
+                  type="number"
+                  name="securityDeposit"
+                  placeholder="e.g. 1000"
+                  value={form.securityDeposit}
+                  onChange={handleChange}
+                  style={styles.input}
+                />
+              </div>
+            </>
           )}
         </>
       )}
@@ -219,6 +300,16 @@ const styles = {
     borderRadius: "16px",
     boxShadow: "0 10px 30px -5px rgba(0,0,0,0.08)",
     boxSizing: "border-box",
+  },
+  typeButton: {
+    flex: 1,
+    padding: '10px',
+    borderRadius: '8px',
+    border: '1px solid #ddd',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '600',
+    transition: 'all 0.2s',
   },
   heading: {
     fontSize: "28px",

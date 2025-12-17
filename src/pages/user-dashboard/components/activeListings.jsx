@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 import { useNavigate } from "react-router-dom";
 // Assuming Lucide icons are available
 import {
@@ -262,9 +262,7 @@ function Card12() {
       try {
         setLoading(true);
         setError("");
-        const token = localStorage.getItem("accessToken");
-        const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        const res = await axios.get("http://localhost:5000/api/products/my-products", { headers });
+        const res = await axios.get("/api/products/my-products");
         const products = res.data?.products || [];
         const mapped = products.map((p) => ({
           img: Array.isArray(p.images) && p.images[0]?.url ? p.images[0].url : "https://via.placeholder.com/56",

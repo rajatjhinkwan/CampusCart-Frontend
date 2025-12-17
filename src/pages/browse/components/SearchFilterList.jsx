@@ -7,14 +7,25 @@ import JobCard from "../../../components/product/JobCard";
 // ------------------------------
 const normalizeLocation = (loc) => {
   if (!loc) return "Unknown";
-
-  if (typeof loc === "string") return loc;
-
+  if (typeof loc === "string") {
+    const s = loc.trim();
+    if (s.startsWith("{") && s.endsWith("}")) {
+      try {
+        const parsed = JSON.parse(s);
+        const { address, area, city, state, pincode } = parsed || {};
+        const str = [address, area, city, state, pincode].filter(Boolean).join(", ");
+        return str || "Unknown";
+      } catch {
+        return s;
+      }
+    }
+    return s;
+  }
   if (typeof loc === "object") {
     const { address, area, city, state, pincode } = loc;
-    return [address, area, city, state, pincode].filter(Boolean).join(", ");
+    const str = [address, area, city, state, pincode].filter(Boolean).join(", ");
+    return str || "Unknown";
   }
-
   return "Unknown";
 };
 
@@ -101,7 +112,7 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
                 ? `₹ ${item.rent.toLocaleString("en-IN")}`
                 : "₹ Not provided",
               image: item?.images?.[0]?.url || "https://via.placeholder.com/300",
-              seller: item.seller || "User",
+              seller: item.seller?.name || "User",
               condition: item.furnished || "Unknown",
               location: normalizeLocation(item.location),
               date: item.availableFrom
@@ -119,6 +130,10 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
           // SERVICES
           // ------------------------------
           else if (type === "Services") {
+            const firstImage =
+              Array.isArray(item?.images) && item.images.length > 0
+                ? (typeof item.images[0] === "string" ? item.images[0] : (item.images[0]?.url || item.image))
+                : (item?.image || "https://via.placeholder.com/300");
             uiItem = {
               id: item._id,
               title: item.title,
@@ -126,8 +141,8 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
                 typeof item.price === "number"
                   ? `₹ ${item.price.toLocaleString("en-IN")}`
                   : item.price || "₹ Not provided",
-              image: item?.images?.[0] || item?.image || "https://via.placeholder.com/300",
-              seller: item.provider || item.seller?.name || "User",
+              image: firstImage,
+              seller: item.provider?.name || item.seller?.name || "User",
               condition: item.condition || "Unknown",
               location: normalizeLocation(item.location),
               date: item.createdAt

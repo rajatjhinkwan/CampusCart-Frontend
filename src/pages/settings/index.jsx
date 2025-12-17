@@ -1,20 +1,20 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import axios from "../../lib/axios";
 import { styles } from "./styles";
-import useUserStore from "../../store/userStore";
+import { useUserStore } from "../../store/userStore";
 
 import Sidebar from "./components/Sidebar";
 
 // --- UPDATED COMPONENT IMPORTS (MATCHING NEW SIDEBAR) ---
 import ProfileSettings from "./components/ProfileSettings.jsx";
 import SecuritySettings from "./components/SecuritySettings.jsx";
-import YourProducts from "./components/YourProducts.jsx";
+
 import SellingDashboard from "./components/SellingDashboard.jsx";
-import PaymentsTransactions from "./components/PaymentsTransactions.jsx";
+
 import NotificationsSettings from "./components/NotificationsSettings.jsx";
 import PrivacySettings from "./components/PrivacySettings.jsx";
 import AppPreferences from "./components/AppPreferences.jsx";
-import ListingsSelling from "./components/ListingsSelling.jsx";
+
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
@@ -22,6 +22,7 @@ const defaultProfile = {
   name: "",
   username: "",
   bio: "",
+  institution: "",
   phone: "",
   location: "",
   profileImage: "",
@@ -51,11 +52,7 @@ const defaultPreferences = {
   language: "English",
 };
 
-const defaultSelling = {
-  autoRenewListings: true,
-  enableOfferRequests: true,
-  promoteListings: false,
-};
+
 
 const defaultSecurity = {
   twoFactor: false,
@@ -73,7 +70,7 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(defaultNotifications);
   const [privacy, setPrivacy] = useState(defaultPrivacy);
   const [preferences, setPreferences] = useState(defaultPreferences);
-  const [sellingPrefs, setSellingPrefs] = useState(defaultSelling);
+
   const [security, setSecurity] = useState(defaultSecurity);
 
   const [loading, setLoading] = useState(false);
@@ -93,16 +90,7 @@ export default function SettingsPage() {
     setError("");
     try {
       // Ensure token is set
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-
-      const res = await axios.get(`${API}/api/users/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await axios.get('/api/users/me');
       const user = res.data?.user || res.data || {};
       const userSettings = user.settings || {};
 
@@ -119,7 +107,6 @@ export default function SettingsPage() {
       setNotifications({ ...defaultNotifications, ...(userSettings.notifications || {}) });
       setPrivacy({ ...defaultPrivacy, ...(userSettings.privacy || {}) });
       setPreferences({ ...defaultPreferences, ...(userSettings.preferences || {}) });
-      setSellingPrefs({ ...defaultSelling, ...(userSettings.selling || {}) });
       setSecurity((prev) => ({
         ...prev,
         twoFactor: userSettings.security?.twoFactorEnabled || false,
@@ -150,40 +137,30 @@ export default function SettingsPage() {
 
     try {
       // Ensure token is set
-      const token = localStorage.getItem("accessToken");
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-
-      const authHeaders = {
-        Authorization: `Bearer ${token}`,
-      };
-
       // 1) Profile + avatar
       const profileForm = new FormData();
       profileForm.append("name", profile.name || "");
       profileForm.append("username", profile.username || "");
       profileForm.append("bio", profile.bio || "");
+      profileForm.append("institution", profile.institution || "");
       profileForm.append("phone", profile.phone || "");
       profileForm.append("location", profile.location || "");
       if (profile.avatarFile) {
         profileForm.append("avatar", profile.avatarFile);
       }
-      await axios.put(`${API}/api/users/me`, profileForm, {
-        headers: { ...authHeaders, "Content-Type": "multipart/form-data" },
+      await axios.put('/api/users/me', profileForm, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
 
-      // 2) Settings (notifications, privacy, preferences, selling, security)
+      // 2) Settings (notifications, privacy, preferences, security)
       await axios.put(
-        `${API}/api/users/me/settings`,
+        '/api/users/me/settings',
         {
           notifications,
           privacy,
           preferences,
-          selling: sellingPrefs,
           security: { twoFactorEnabled: security.twoFactor },
-        },
-        { headers: authHeaders }
+        }
       );
 
       // 3) Password change (optional)
@@ -200,12 +177,11 @@ export default function SettingsPage() {
         }
 
         await axios.put(
-          `${API}/api/users/me/password`,
+          '/api/users/me/password',
           {
             currentPassword: security.password.current,
             newPassword: security.password.newPass,
-          },
-          { headers: authHeaders }
+          }
         );
       }
 
@@ -240,12 +216,7 @@ export default function SettingsPage() {
             onChange={setSecurity}
           />
         );
-      case "products":
-        return <YourProducts />;
-      case "selling":
-        return <SellingDashboard />;
-      case "payments":
-        return <PaymentsTransactions />;
+
       case "notifications":
         return (
           <NotificationsSettings
@@ -269,13 +240,7 @@ export default function SettingsPage() {
             onChange={setPreferences}
           />
         );
-      case "listings":
-        return (
-          <ListingsSelling
-            sellingPrefs={sellingPrefs}
-            onChange={setSellingPrefs}
-          />
-        );
+
       default:
         return (
           <ProfileSettings

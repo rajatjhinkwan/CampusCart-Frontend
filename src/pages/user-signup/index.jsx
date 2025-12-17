@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { User, Lock, ShieldCheck, Rocket } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import useUserStore from "../../store/userStore";
+ 
+import { useUserStore } from "../../store/userStore";
 
 export default function Signup() {
     const navigate = useNavigate();
@@ -22,50 +22,28 @@ export default function Signup() {
     };
 
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+    const signup = useUserStore((state) => state.signup);
 
-  try {
-    const payload = {
-      name: formData.fullName,
-      email: formData.email,
-      password: formData.password,
-      role: formData.role,
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        const payload = {
+            name: formData.fullName,
+            email: formData.email,
+            password: formData.password,
+            role: formData.role,
+        };
+
+        const result = await signup(payload);
+
+        if (result.success) {
+            navigate("/homepage");
+        } else {
+            console.error("Signup failed:", result.error);
+            // Optional: set local error state to display in UI if desired, 
+            // but toast is already handled in store.
+        }
     };
-
-    const res = await axios.post(
-      "http://localhost:5000/api/auth/signup",
-      payload,
-      { headers: { "Content-Type": "application/json" } }
-    );
-
-    console.log("Signup success:", res.data);
-
-    const { user, accessToken, refreshToken } = res.data;
-
-    // ============================
-    // 💾 Save in Zustand global store
-    // ============================
-    useUserStore.setState({
-      user,
-      accessToken,
-      refreshToken,
-    });
-
-    // ============================
-    // 💾 Persist in localStorage
-    // ============================
-    localStorage.setItem("user", JSON.stringify(user));
-    localStorage.setItem("accessToken", accessToken);
-    localStorage.setItem("refreshToken", refreshToken);
-
-    // Redirect
-    navigate("/homepage");
-  } catch (err) {
-    console.error("Signup ERROR Status:", err.response?.status);
-    console.error("Signup ERROR Details:", err.response?.data);
-  }
-};
 
 
     const styles = {
@@ -229,35 +207,35 @@ const handleSubmit = async (e) => {
                         <label
                             style={{
                                 ...styles.radio,
-                                ...(formData.role === "student" ? styles.radioActive : {}),
+                                ...(formData.role === "buyer" ? styles.radioActive : {}),
                             }}
                         >
                             <input
                                 type="radio"
                                 name="role"
-                                value="student"
+                                value="buyer"
                                 style={{ display: "none" }}
-                                checked={formData.role === "student"}
+                                checked={formData.role === "buyer"}
                                 onChange={handleChange}
                             />
-                            Student User
+                            Buyer
                         </label>
 
                         <label
                             style={{
                                 ...styles.radio,
-                                ...(formData.role === "admin" ? styles.radioActive : {}),
+                                ...(formData.role === "seller" ? styles.radioActive : {}),
                             }}
                         >
                             <input
                                 type="radio"
                                 name="role"
-                                value="admin"
+                                value="seller"
                                 style={{ display: "none" }}
-                                checked={formData.role === "admin"}
+                                checked={formData.role === "seller"}
                                 onChange={handleChange}
                             />
-                            Campus Admin
+                            Seller
                         </label>
                     </div>
 

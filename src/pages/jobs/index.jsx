@@ -1,17 +1,24 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import axios from "axios";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "../../lib/axios";
+import { useUserStore } from "../../store/userStore";
+import toast from "react-hot-toast";
 
 export default function JobDetails() {
     const { id } = useParams();
+    const navigate = useNavigate();
+    const { isAuthenticated, startConversation } = useUserStore();
     const [job, setJob] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [applyLoading, setApplyLoading] = useState(false);
     const [error, setError] = useState("");
+    const [reportReason, setReportReason] = useState("");
+    const [reportMessage, setReportMessage] = useState("");
 
     useEffect(() => {
         async function fetchJob() {
             try {
-                const res = await axios.get(`http://localhost:5000/api/jobs/${id}`);
+                const res = await axios.get(`/api/jobs/${id}`);
                 setJob(res.data.data || null);
             } catch (err) {
                 console.error(err);
@@ -28,6 +35,48 @@ export default function JobDetails() {
 
     const location =
         typeof job.location === "string" ? job.location : "Location not specified";
+
+    const handleApply = async () => {
+        if (!isAuthenticated) {
+            toast.error("Please login to apply");
+            navigate("/login");
+            return;
+        }
+        
+        const employerId = job.postedBy?._id || job.postedBy;
+        if (!employerId) {
+            toast.error("Employer info missing");
+            return;
+        }
+
+        const myId = useUserStore.getState().user?._id;
+        if (myId === employerId) {
+            toast.error("You cannot apply to your own job");
+            return;
+        }
+
+        setApplyLoading(true);
+        try {
+            const { success, conversationId, error } = await startConversation({
+                recipientId: employerId,
+                productId: job._id,
+                contextType: "Job"
+            });
+            
+            if (success && conversationId) {
+                // Send initial application message
+                await useUserStore.getState().sendMessage(conversationId, `Hi, I'm interested in applying for the "${job.title}" position.`);
+                navigate("/messages");
+            } else {
+                toast.error(error || "Failed to start application");
+            }
+        } catch (err) {
+            console.error(err);
+            toast.error("Something went wrong");
+        } finally {
+            setApplyLoading(false);
+        }
+    };
 
     return (
         <div style={styles.page}>
@@ -85,7 +134,55 @@ export default function JobDetails() {
             <div style={styles.contactCard}>
                 <h2 style={styles.sectionTitle}>Contact</h2>
                 <p style={styles.text}>📞 {job.postedBy?.email || "Not available"}</p>
-                <button style={styles.applyBtn}>Apply Now</button>
+                <button 
+                    style={{...styles.applyBtn, opacity: applyLoading ? 0.7 : 1, cursor: applyLoading ? 'not-allowed' : 'pointer'}} 
+                    onClick={handleApply}
+                    disabled={applyLoading}
+                >
+                    {applyLoading ? "Applying..." : "Apply Now"}
+                </button>
+            </div>
+            <div style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}>
+                <div style={{ fontWeight: 600, marginBottom: 8 }}>Report Job</div>
+                <select
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, fontSize: 14 }}
+                >
+                    <option value="">Select a reason</option>
+                    <option value="spam">Spam or misleading</option>
+                    <option value="fraud">Fraud or fake</option>
+                    <option value="inappropriate">Inappropriate content</option>
+                    <option value="duplicate">Duplicate listing</option>
+                    <option value="illegal">Illegal job</option>
+                </select>
+                <textarea
+                    placeholder="Optional details"
+                    value={reportMessage}
+                    onChange={(e) => setReportMessage(e.target.value)}
+                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, fontSize: 14, minHeight: 80 }}
+                />
+                <button
+                    onClick={async () => {
+                        try {
+                            const token = useUserStore.getState().accessToken;
+                            if (!token) { toast.error("Please login to report"); return; }
+                            if (!reportReason) { toast.error("Select a reason"); return; }
+                            await axios.post(
+                                `/api/reports/job/${job._id}`,
+                                { reason: reportReason, message: reportMessage }
+                            );
+                            toast.success("Report submitted");
+                            setReportReason("");
+                            setReportMessage("");
+                        } catch (e) {
+                            toast.error(e.response?.data?.message || "Failed to submit report");
+                        }
+                    }}
+                    style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#ef4444", color: "#fff", border: "none", fontWeight: 600, cursor: "pointer" }}
+                >
+                    Report
+                </button>
             </div>
         </div>
     );

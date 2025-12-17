@@ -1,14 +1,14 @@
 // src/pages/TestNotifications.jsx
 import React from 'react';
-import useUserStore from '../store/userStore';
+import { useUserStore } from '../store/userStore';
 
 const TestNotifications = () => {
-  const { 
-    notifications, 
+  const {
+    notifications,
     unreadCount,
     markAsRead,
     markAllAsRead,
-    simulateNotification 
+    simulateNotification
   } = useUserStore();
 
   const notificationTypes = [
@@ -20,14 +20,14 @@ const TestNotifications = () => {
   ];
 
   return (
-    <div style={{ 
-      maxWidth: '600px', 
-      margin: '2rem auto', 
+    <div style={{
+      maxWidth: '600px',
+      margin: '2rem auto',
       padding: '1rem',
       fontFamily: 'Arial, sans-serif'
     }}>
       <h1>Notification Tester</h1>
-      
+
       <div style={{ marginBottom: '2rem', padding: '1rem', background: '#f0f0f0', borderRadius: '8px' }}>
         <h3>Test Notifications</h3>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -50,21 +50,21 @@ const TestNotifications = () => {
         </div>
       </div>
 
-      <div style={{ 
-        background: 'white', 
-        borderRadius: '8px', 
+      <div style={{
+        background: 'white',
+        borderRadius: '8px',
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         overflow: 'hidden'
       }}>
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
           padding: '1rem',
           borderBottom: '1px solid #eee'
         }}>
           <h3>Notifications ({unreadCount} unread)</h3>
-          <button 
+          <button
             onClick={markAllAsRead}
             disabled={unreadCount === 0}
             style={{
@@ -98,8 +98,8 @@ const TestNotifications = () => {
                 }}
                 onClick={() => !notification.isRead && markAsRead(notification.id)}
               >
-                <div style={{ 
-                  display: 'flex', 
+                <div style={{
+                  display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center'
                 }}>
@@ -113,8 +113,8 @@ const TestNotifications = () => {
                     }}></span>
                   )}
                 </div>
-                <div style={{ 
-                  fontSize: '0.8rem', 
+                <div style={{
+                  fontSize: '0.8rem',
                   color: '#666',
                   marginTop: '4px'
                 }}>

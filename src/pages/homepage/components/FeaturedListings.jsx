@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import axios from "../../../lib/axios";
 
 function FeaturedListings() {
   const containerStyle = {
@@ -120,16 +120,45 @@ function FeaturedListings() {
 
   // ⭐ Corrected fetch logic
   useEffect(() => {
-    axios.get("/api/")
-      .then((res) => {
-        console.log("Fetched featured:", res.data);
-
-        // ✅ FIXED: Correct condition
-        if (Array.isArray(res.data.data)) {
+    const run = async () => {
+      const token = localStorage.getItem("accessToken");
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      try {
+        const res = await axios.get("/api/products/featured-products", { headers });
+        if (Array.isArray(res.data?.data)) {
           setFeaturedProducts(res.data.data);
+          return;
         }
-      })
-      .catch((err) => console.error("Error fetching featured:", err));
+      } catch (e) {
+        console.error(e);
+      }
+      try {
+        const res = await axios.get("/api/products");
+        const list = Array.isArray(res.data?.products) ? res.data.products : (Array.isArray(res.data?.data) ? res.data.data : []);
+        if (list.length) {
+          const scored = list
+            .map((p) => {
+              const priceNum = typeof p.price === "number" ? p.price : Number(p.price) || 0;
+              let score = priceNum;
+              const cat = (p.category?.name || p.category || "").toString().toLowerCase();
+              if (cat.includes("electronics") || cat.includes("real")) score += 5000;
+              if (p.tags && Array.isArray(p.tags)) {
+                const t = p.tags.map(String).join(" ").toLowerCase();
+                if (t.includes("warranty") || t.includes("premium")) score += 3000;
+              }
+              if (p.isFeatured) score += 8000;
+              return { p, score };
+            })
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map(({ p }) => p);
+          setFeaturedProducts(scored);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    run();
   }, []);
 
   return (
@@ -144,57 +173,66 @@ function FeaturedListings() {
       </div>
 
       <div style={containerStyle}>
-        {featuredProducts.map((item, index) => (
-          <div
-            key={index}
-            style={cardStyle}
-            onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHover)}
-            onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
-          >
-            <img src={item.image} alt={item.title} style={imageStyle} />
+        {featuredProducts.map((item, index) => {
+          const displayUser = item.user || item.seller || {};
+          const userName = displayUser.name || "Seller";
+          const userColor = displayUser.color || "#3b82f6";
+          const userRating = typeof displayUser.rating === "object"
+            ? (displayUser.rating?.average ?? "New")
+            : (displayUser.rating ?? "New");
 
-            <div style={contentStyle}>
-              <div style={priceStyle}>
-                {item.price}
-                {item.oldPrice && (
-                  <span style={oldPriceStyle}>{item.oldPrice}</span>
-                )}
-              </div>
+          return (
+            <div
+              key={index}
+              style={cardStyle}
+              onMouseEnter={(e) => Object.assign(e.currentTarget.style, cardHover)}
+              onMouseLeave={(e) => Object.assign(e.currentTarget.style, cardStyle)}
+            >
+              <img src={item.image || item.images?.[0]?.url || "https://via.placeholder.com/300"} alt={item.title} style={imageStyle} />
 
-              <h3 style={titleStyle}>{item.title}</h3>
-
-              <p style={locationStyle}>
-                <i className="fa-solid fa-location-dot"></i> {item.location}
-              </p>
-
-              <div style={tagBox}>
-                {item.tags.map((tag, i) => (
-                  <span key={i} style={tagStyle(tag.bg, tag.color)}>
-                    {tag.text}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div style={footerStyle}>
-              <div style={userBox}>
-                <div style={userAvatar(item.user.color)}>
-                  {item.user.name[0]}
+              <div style={contentStyle}>
+                <div style={priceStyle}>
+                  {item.price}
+                  {item.oldPrice && (
+                    <span style={oldPriceStyle}>{item.oldPrice}</span>
+                  )}
                 </div>
-                <span style={{ fontSize: "14px", color: "#1E293B", fontWeight: "500" }}>
-                  {item.user.name}
-                </span>
+
+                <h3 style={titleStyle}>{item.title}</h3>
+
+                <p style={locationStyle}>
+                  <i className="fa-solid fa-location-dot"></i> {item.location || "Location not set"}
+                </p>
+
+                <div style={tagBox}>
+                  {item.tags?.map((tag, i) => (
+                    <span key={i} style={tagStyle(tag.bg, tag.color)}>
+                      {tag.text}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              <div style={ratingStyle}>
-                <i className="fa-solid fa-star"></i> {item.user.rating}
+              <div style={footerStyle}>
+                <div style={userBox}>
+                  <div style={userAvatar(userColor)}>
+                    {userName[0]}
+                  </div>
+                  <span style={{ fontSize: "14px", color: "#1E293B", fontWeight: "500" }}>
+                    {userName}
+                  </span>
+                </div>
+
+                <div style={ratingStyle}>
+                  <i className="fa-solid fa-star"></i> {userRating}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   );
 };
 
-  export default FeaturedListings;
+export default FeaturedListings;
