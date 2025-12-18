@@ -3,7 +3,7 @@ import axios from "../../../lib/axios";
 // Assuming Lucide icons are available
 import {
   Plus, Search, MapPin, Clock, Settings,
-  Trash2, Bell, BellOff, Package, BarChart2, DollarSign, ChevronRight
+  Trash2, Bell, BellOff, Package, BarChart2, ChevronRight
 } from "lucide-react";
 
 const SavedSearches = () => {
@@ -248,7 +248,7 @@ const SavedSearches = () => {
           name: p.title || "Untitled",
           tag: p.category?.name || p.category || "Unknown",
           location: p.location || "",
-          price: typeof p.price === "number" ? `₹${p.price}` : (p.price || "₹0"),
+          price: typeof p.price === "number" ? `₹ ${p.price.toLocaleString('en-IN')}` : (p.price || "₹0"),
           results: p.views ? String(p.views) : "0",
           updated: p.updatedAt ? new Date(p.updatedAt).toLocaleString() : (p.createdAt ? new Date(p.createdAt).toLocaleString() : ""),
           newBadge: p.createdAt && Date.now() - new Date(p.createdAt).getTime() < 7 * 24 * 3600 * 1000 ? "NEW" : "",
@@ -318,7 +318,7 @@ const SavedSearches = () => {
           {/* COLUMN 2: Price & Location */}
           <div style={styles.colCriteria}>
             <div style={styles.price}>
-              <DollarSign size={14} strokeWidth={3} /> {item.price}
+              {item.price}
             </div>
             <div style={styles.location}>
               <MapPin size={12} /> {item.location}

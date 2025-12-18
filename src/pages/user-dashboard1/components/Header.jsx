@@ -70,7 +70,6 @@ export function Header({ onMenuClick }) {
         <button
           style={styles.menuButton}
           onClick={onMenuClick}
-          className="dashboard-menu-btn"
         >
           <Menu size={22} />
         </button>

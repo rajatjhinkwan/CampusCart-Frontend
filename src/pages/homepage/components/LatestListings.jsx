@@ -290,8 +290,8 @@ function LatestListings() {
         "https://via.placeholder.com/300";
       const price =
         typeof entity.price === "number"
-          ? `₹${entity.price}`
-          : entity.price || (entity.rent ? `₹${entity.rent}/month` : "");
+          ? `₹${entity.price.toLocaleString('en-IN')}`
+          : entity.price || (entity.rent ? `₹${Number(entity.rent).toLocaleString('en-IN')}/month` : "");
       const location = normalizeLocation(entity.location);
       const title =
         entity.title ||
@@ -333,10 +333,10 @@ function LatestListings() {
         
         // Ensure at least 4 items for a full row if data is sparse
         if (sorted.length > 0 && sorted.length < 4) {
-           const placeholders = fallbackCards.slice(0, 4 - sorted.length).map(c => ({...c, title: "Featured Product (Demo)"}));
+           const placeholders = fallbackCards.slice(0, 4 - sorted.length);
            sorted = [...sorted, ...placeholders];
         } else if (sorted.length > 4 && sorted.length < 8) {
-           const placeholders = fallbackCards.slice(0, 8 - sorted.length).map(c => ({...c, title: "Featured Product (Demo)"}));
+           const placeholders = fallbackCards.slice(0, 8 - sorted.length);
            sorted = [...sorted, ...placeholders];
         }
 
@@ -357,7 +357,7 @@ function LatestListings() {
         entity.image ||
         (Array.isArray(entity.images) && entity.images[0]?.url) ||
         "https://via.placeholder.com/300";
-      const price = entity.rent ? `₹${entity.rent}/month` : "";
+      const price = entity.rent ? `₹${Number(entity.rent).toLocaleString('en-IN')}/month` : "";
       const location = normalizeLocation(entity.location);
       const title = entity.title || "Room";
       const user = entity.seller || {};
@@ -389,7 +389,7 @@ function LatestListings() {
         
         // Ensure at least 4 items for a full row if data is sparse
         if (mapped.length > 0 && mapped.length < 4) {
-           const placeholders = fallbackCards.slice(0, 4 - mapped.length).map(c => ({...c, title: "Featured Room (Demo)", price: "₹12,000/month"}));
+           const placeholders = fallbackCards.slice(0, 4 - mapped.length).map(c => ({...c, price: "₹12,000/month"}));
            mapped = [...mapped, ...placeholders];
         }
 
@@ -397,7 +397,7 @@ function LatestListings() {
       } catch (e) {
         console.error(e);
         // Fallback for rooms if API fails
-        setRooms(fallbackCards.map(c => ({...c, title: "Luxury Room", price: "₹15,000/month"})));
+        setRooms(fallbackCards.map(c => ({...c, price: "₹15,000/month"})));
       } finally {
         setLoadingRooms(false);
       }

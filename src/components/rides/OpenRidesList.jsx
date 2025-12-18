@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from '../../lib/axios';
 import toast from 'react-hot-toast';
 import io from 'socket.io-client';
@@ -37,37 +37,45 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
     }
   };
 
+  const locationRef = useRef(null);
+
   const fetchOpenRides = async () => {
     try {
-      // Get current location
-      navigator.geolocation.getCurrentPosition(async (position) => {
-        const { latitude, longitude } = position.coords;
+      const { latitude, longitude } = locationRef.current || {};
+      const params = {};
+      if (latitude && longitude) {
+        params.lat = latitude;
+        params.lng = longitude;
+        params.radiusKm = 10;
+      }
 
-        const response = await axios.get('/api/rides/open', {
-          params: { lat: latitude, lng: longitude, radiusKm: 10 }
-        });
-
-        setRides(response.data?.rides || []);
-      }, async (error) => {
-        console.error('Error getting location:', error);
-        toast.error('Unable to get your location');
-        try {
-          const response = await axios.get('/api/rides/open');
-          setRides(response.data?.rides || []);
-        } catch (err) {
-          console.error('Fallback rides fetch failed:', err);
-        }
-      });
+      const response = await axios.get('/api/rides/open', { params });
+      setRides(response.data?.rides || []);
     } catch (error) {
       console.error('Error fetching rides:', error);
-      toast.error('Failed to load available rides');
+      // toast.error('Failed to load available rides'); // Suppress frequent errors
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOpenRides();
+    // Get location once on mount
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          locationRef.current = position.coords;
+          fetchOpenRides(); // Fetch immediately with location
+        },
+        (err) => {
+          console.warn("Location access denied or failed", err);
+          fetchOpenRides(); // Fetch without location
+        },
+        { timeout: 10000 }
+      );
+    } else {
+      fetchOpenRides();
+    }
 
     // Refresh rides every 30 seconds
     const interval = setInterval(fetchOpenRides, 30000);

@@ -273,7 +273,7 @@ export default function PublicProfile() {
                                     style={styles.cardImg}
                                 />
                                 <div style={styles.cardContent}>
-                                    <div style={styles.cardPrice}>₹{product.price.toLocaleString()}</div>
+                                    <div style={styles.cardPrice}>₹{product.price.toLocaleString('en-IN')}</div>
                                     <div style={styles.cardTitle}>{product.title}</div>
                                 </div>
                             </div>

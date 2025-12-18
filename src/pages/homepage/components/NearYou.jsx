@@ -6,6 +6,7 @@ function NearYou() {
   const { user } = useUserStore.getState();
   const [city, setCity] = useState("");
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const formatTimeAgo = (iso) => {
     if (!iso) return "";
@@ -26,9 +27,32 @@ function NearYou() {
     }
     if (!resolved && typeof navigator !== "undefined" && navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        () => { setCity("Chamoli"); },
-        () => { setCity("Chamoli"); },
-        { timeout: 3000 }
+        async (pos) => {
+          try {
+            const { latitude, longitude } = pos.coords;
+            const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+            const r = await fetch(`${photonBase}/reverse?lat=${latitude}&lon=${longitude}`, { headers: { Accept: 'application/json' } });
+            if (r.ok) {
+              const d = await r.json();
+              const f = Array.isArray(d.features) ? d.features[0] : null;
+              const p = f?.properties || {};
+              // Try to find the most relevant city/town name
+              const cityName = p.city || p.town || p.village || p.county || p.state || "Chamoli";
+              setCity(cityName);
+              return;
+            }
+          } catch (e) {
+            console.warn("Reverse geocoding failed", e);
+          }
+          // Fallback if reverse geocoding fails but we have coords (maybe backend supports coords?)
+          // For now, default to Chamoli
+          setCity("Chamoli");
+        },
+        (err) => { 
+          console.warn("Geolocation failed", err);
+          setCity("Chamoli"); 
+        },
+        { timeout: 10000, enableHighAccuracy: false }
       );
     } else {
       setCity(resolved || "Chamoli");
@@ -44,13 +68,13 @@ function NearYou() {
         "https://via.placeholder.com/300";
       let price = "";
       if (type === "product" && entity.type === "rent") {
-          price = `₹${entity.rentalPrice || entity.price}/${entity.rentalPeriod || "mo"}`;
+          price = `₹${Number(entity.rentalPrice || entity.price || 0).toLocaleString('en-IN')}/${entity.rentalPeriod || "mo"}`;
       } else if (typeof entity.price === "number") {
-          price = `₹${entity.price}`;
+          price = `₹${Number(entity.price).toLocaleString('en-IN')}`;
       } else if (entity.price) {
           price = entity.price;
       } else if (entity.rent) {
-          price = `₹${entity.rent}/month`;
+          price = `₹${Number(entity.rent).toLocaleString('en-IN')}/month`;
       }
       const loc =
         entity.location?.city ||
@@ -84,6 +108,7 @@ function NearYou() {
     };
 
     const run = async () => {
+      setLoading(true);
       try {
         const [pRes, rRes, sRes, jRes] = await Promise.all([
           axios.get("/api/products", { params: { location: city, limit: 6 } }),
@@ -110,6 +135,8 @@ function NearYou() {
         setItems(combined.slice(0, 8));
       } catch (err) {
         console.error(err);
+      } finally {
+        setLoading(false);
       }
     };
     run();
@@ -273,8 +300,13 @@ function NearYou() {
       </div>
       
       <div style={containerStyle}>
-        {cards.map((item, index) => (
-          <div
+        {loading ? (
+           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 0", color: "#64748B" }}>
+             <p style={{ fontSize: "18px", fontWeight: "500" }}>Loading nearby items...</p>
+           </div>
+        ) : cards.length > 0 ? (
+          cards.map((item, index) => (
+            <div
             key={index}
             style={cardStyle}
             onMouseEnter={(e) => {
@@ -316,7 +348,13 @@ function NearYou() {
               </div>
             </div>
           </div>
-        ))}
+          ))
+        ) : (
+          <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px", backgroundColor: "#fff", borderRadius: "16px", border: "1px dashed #E2E8F0" }}>
+            <p style={{ fontSize: "20px", color: "#1E293B", fontWeight: "600", marginBottom: "8px" }}>No items found near {city}</p>
+            <p style={{ color: "#64748B", fontSize: "15px" }}>We couldn't find any listings in your area yet. Try changing your location or check back later.</p>
+          </div>
+        )}
       </div>
     </div>
   );

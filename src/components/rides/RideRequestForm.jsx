@@ -68,7 +68,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
             }
         }
         const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
-        const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'contact@example.com';
+        const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
         const url = `${osmBase}/search?format=jsonv2&limit=1&email=${encodeURIComponent(contact)}&q=${encodeURIComponent(query)}`;
         const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res2.ok) throw new Error('GEOCODE_FAILED');
@@ -91,7 +91,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
             });
         }
         const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
-        const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'contact@example.com';
+        const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
         const url = `${osmBase}/search?format=jsonv2&email=${encodeURIComponent(contact)}&q=${encodeURIComponent(q)}&addressdetails=0&limit=5`;
         const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
         if (!res2.ok) return [];
@@ -189,7 +189,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
                 }
                 if (!address) {
                     const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
-                    const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'contact@example.com';
+                    const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
                     const url = `${osmBase}/reverse?format=jsonv2&email=${encodeURIComponent(contact)}&lat=${latitude}&lon=${longitude}`;
                     const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
                     if (res2.ok) {

@@ -1,7 +1,72 @@
 // STEP 1C — ROOM SUBCATEGORIES
 
+import React, { useState, useEffect } from 'react';
 import { Home, Users, Bed, CalendarDays } from "lucide-react";
 import ProgressBar from "./progressBar";
+
+const styles = {
+    container: {
+        textAlign: 'center',
+        width: '80%',
+        margin: '0 auto',
+        fontFamily: "'Inter', sans-serif",
+        padding: '20px',
+    },
+    heading: {
+        fontSize: '1.875rem',
+        fontWeight: 700,
+        marginBottom: '0.25rem',
+        color: '#0f172a',
+    },
+    subheading: {
+        fontSize: '0.875rem',
+        marginBottom: '1.75rem',
+        color: '#64748b',
+    },
+    grid: {
+        display: 'grid',
+        gap: '2rem',
+        justifyContent: 'center',
+        marginTop: '1.25rem',
+        // gridTemplateColumns handled dynamically
+    },
+    card: {
+        padding: '1.5rem',
+        backgroundColor: 'white',
+        borderRadius: '0.75rem',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        cursor: 'pointer',
+        transition: 'all 200ms',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '9rem',
+        width: '12rem',
+        position: 'relative',
+    },
+    badge: {
+        position: 'absolute',
+        top: '0.5rem',
+        right: '0.5rem',
+        backgroundColor: '#3b82f6',
+        color: 'white',
+        fontSize: '0.75rem',
+        padding: '0.25rem 0.5rem',
+        borderRadius: '9999px',
+        fontWeight: 600,
+    },
+    icon: {
+        color: '#334155',
+    },
+    cardText: {
+        marginTop: '0.75rem',
+        fontWeight: 600,
+        color: '#0f172a',
+        textAlign: 'center',
+    },
+};
 
 export default function Step1C({ onSelect }) {
     // Room types for the subcategory
@@ -15,31 +80,54 @@ export default function Step1C({ onSelect }) {
         { name: "Short-Term Stay", icon: CalendarDays, badge: null },
     ];
 
+    const [columns, setColumns] = useState(1);
+
+    useEffect(() => {
+        const handleResize = () => {
+            const width = window.innerWidth;
+            if (width >= 1024) setColumns(4);
+            else if (width >= 768) setColumns(3);
+            else if (width >= 640) setColumns(2);
+            else setColumns(1);
+        };
+        handleResize(); // Initial check
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
-        <div className="text-center w-4/5 mx-auto font-inter p-5">
-            <h2 className="text-3xl font-bold mb-1 text-slate-900">STEP 1C</h2>
-            <p className="text-sm mb-7 text-slate-500">Choose Room Type</p>
+        <div style={styles.container}>
+            <h2 style={styles.heading}>STEP 1C</h2>
+            <p style={styles.subheading}>Choose Room Type</p>
 
             {/* Progress Bar showing current step */}
             <ProgressBar currentStep={1} totalSteps={6} />
 
             {/* Room Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 justify-center mt-5">
+            <div style={{ ...styles.grid, gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}>
                 {roomTypes.map((room, i) => {
                     const Icon = room.icon;
                     return (
                         <div
                             key={i}
-                            className="p-6 bg-white rounded-xl border border-slate-200 shadow-md hover:shadow-lg cursor-pointer transition-all duration-200 hover:-translate-y-1 flex flex-col items-center justify-center h-36 w-48 relative"
+                            style={styles.card}
                             onClick={() => onSelect(room.name)}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-0.25rem)';
+                                e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'none';
+                                e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+                            }}
                         >
                             {room.badge && (
-                                <span className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+                                <span style={styles.badge}>
                                     {room.badge}
                                 </span>
                             )}
-                            <Icon size={34} strokeWidth={1.6} className="text-slate-700" />
-                            <span className="mt-3 font-semibold text-slate-900 text-center">{room.name}</span>
+                            <Icon size={34} strokeWidth={1.6} style={styles.icon} />
+                            <span style={styles.cardText}>{room.name}</span>
                         </div>
                     );
                 })}

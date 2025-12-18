@@ -192,9 +192,11 @@ function FeaturedListings() {
 
               <div style={contentStyle}>
                 <div style={priceStyle}>
-                  {item.price}
+                  {typeof item.price === 'number' ? `₹${item.price.toLocaleString('en-IN')}` : item.price}
                   {item.oldPrice && (
-                    <span style={oldPriceStyle}>{item.oldPrice}</span>
+                    <span style={oldPriceStyle}>
+                      {typeof item.oldPrice === 'number' ? `₹${item.oldPrice.toLocaleString('en-IN')}` : item.oldPrice}
+                    </span>
                   )}
                 </div>
 

@@ -138,7 +138,7 @@ export default function Step5({ form = {}, onNext, onBack, categoryType }) {
           style={isLoading ? { ...styles.detectButton, ...styles.detectButtonDisabled } : styles.detectButton}
         >
           {isLoading ? (
-            <Loader2 className="spin-animation" size={20} style={{ marginRight: 10 }} />
+            <Loader2 size={20} style={{ marginRight: 10, animation: 'spin 1s linear infinite' }} />
           ) : (
             <Navigation size={20} style={{ marginRight: 10 }} />
           )}
@@ -205,7 +205,7 @@ export default function Step5({ form = {}, onNext, onBack, categoryType }) {
         </button>
       </div>
 
-      <style>{`.spin-animation { animation: spin 1s linear infinite; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+
     </div>
   );
 }

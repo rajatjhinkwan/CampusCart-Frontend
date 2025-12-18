@@ -236,9 +236,20 @@ export default function SellItem() {
       // POST REQUEST
       // -----------------------
       const endpoint = getApiEndpoint();
+      
+      // Debug: Log what we are sending
+      for (let [key, value] of formData.entries()) {
+        console.log(`FormData: ${key} =`, value);
+      }
+
       const response = await axios.post(
         `/api/${endpoint}`,
-        formData
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
       );
 
       if (response.data.success) {

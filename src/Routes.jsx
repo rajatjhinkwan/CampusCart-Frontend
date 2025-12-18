@@ -9,6 +9,8 @@ import { useUserStore } from "./store/userStore";
 const NotFound = lazy(() => import("./pages/notFound.jsx"));
 const UserLogin = lazy(() => import("./pages/user-login"));
 const UserSignup = lazy(() => import("./pages/user-signup"));
+const ForgotPassword = lazy(() => import("./pages/forgot-password"));
+const ResetPassword = lazy(() => import("./pages/reset-password"));
 const SearchResults = lazy(() => import("./pages/search-results"));
 const Messages = lazy(() => import("./pages/messages"));
 const UserDashboard = lazy(() => import("./pages/user-dashboard"));
@@ -53,8 +55,17 @@ const Testlocation = lazy(() => import("./testlocation"));
 const TestNotifications = lazy(() => import("./pages/TestNotifications"));
 
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+    <div style={{
+      animation: 'spin 1s linear infinite',
+      borderRadius: '9999px',
+      height: '3rem',
+      width: '3rem',
+      borderTopWidth: '2px',
+      borderBottomWidth: '2px',
+      borderColor: '#3b82f6',
+      borderStyle: 'solid'
+    }}></div>
   </div>
 );
 
@@ -70,6 +81,8 @@ const Routes = () => {
             <Route path="/homepage" element={<HomePage />} />
             <Route path="/user-login" element={<UserLogin />} />
             <Route path="/user-signup" element={<UserSignup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/search-results" element={<SearchResults />} />
             <Route path="/user-messages" element={isAuthenticated ? <Messages /> : <UserLogin />} />
             <Route path="/user-dashboard" element={isAuthenticated ? <UserDashboard /> : <UserLogin />} />

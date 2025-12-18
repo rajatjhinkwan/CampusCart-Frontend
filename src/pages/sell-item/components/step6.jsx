@@ -91,7 +91,7 @@ export default function Step6ReviewPublish({
                   <b style={styles.listLabel}>Price:</b>{" "}
                   <span>
                     {priceDetails.price
-                      ? `₹ ${priceDetails.price} (${priceDetails.mode})`
+                      ? `₹ ${Number(priceDetails.price).toLocaleString('en-IN')} (${priceDetails.mode})`
                       : "N/A"}
                   </span>
                 </li>
@@ -99,19 +99,19 @@ export default function Step6ReviewPublish({
               {categoryType === "Room" && (
                 <li style={styles.listItem}>
                   <b style={styles.listLabel}>Rent:</b>{" "}
-                  <span>{priceDetails.rent ? `₹ ${priceDetails.rent}` : "N/A"}</span>
+                  <span>{priceDetails.rent ? `₹ ${Number(priceDetails.rent).toLocaleString('en-IN')}` : "N/A"}</span>
                 </li>
               )}
               {categoryType === "Job" && (
                 <li style={styles.listItem}>
                   <b style={styles.listLabel}>Salary:</b>{" "}
-                  <span>{priceDetails.salary ? `₹ ${priceDetails.salary}` : "N/A"}</span>
+                  <span>{priceDetails.salary ? `₹ ${Number(priceDetails.salary).toLocaleString('en-IN')}` : "N/A"}</span>
                 </li>
               )}
               {categoryType === "Service" && (
                 <li style={styles.listItem}>
                   <b style={styles.listLabel}>Rate:</b>{" "}
-                  <span>{priceDetails.rate ? `₹ ${priceDetails.rate}` : "N/A"}</span>
+                  <span>{priceDetails.rate ? `₹ ${Number(priceDetails.rate).toLocaleString('en-IN')}` : "N/A"}</span>
                 </li>
               )}
               <li style={styles.listItem}>

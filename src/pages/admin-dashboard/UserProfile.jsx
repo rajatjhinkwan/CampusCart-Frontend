@@ -64,7 +64,7 @@ export default function AdminUserProfile() {
           </div>
         </div>
 
-        <div className="grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div style={styles.card}>
             <div style={styles.cardHead}><Layers size={18} /> Listings</div>
             <div style={styles.list}>

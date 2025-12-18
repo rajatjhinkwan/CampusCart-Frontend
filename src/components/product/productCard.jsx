@@ -260,8 +260,10 @@ export default function ProductCard({ product }) {
       <div style={styles.content}>
         <span style={styles.price}>
           {product.type === "rent"
-            ? `₹${product.rentalPrice || product.price}/${product.rentalPeriod || "mo"}`
-            : product.price}
+            ? `₹${Number(product.rentalPrice || product.price || 0).toLocaleString('en-IN')}/${product.rentalPeriod || "mo"}`
+            : (typeof product.price === 'number'
+                ? `₹${Number(product.price).toLocaleString('en-IN')}`
+                : (String(product.price || '').startsWith('₹') ? product.price : (product.price ? `₹${product.price}` : '')))}
         </span>
 
         <div style={styles.title}>{product.title}</div>

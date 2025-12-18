@@ -13,6 +13,7 @@ export const useUserStore = create(
             error: null,
             checkedAuth: false,
             isAuthenticated: false,
+            appLocation: null,
 
             // Helper to reset error
             clearError: () => set({ error: null }),
@@ -131,45 +132,31 @@ export const useUserStore = create(
                 set({ loading: true, error: null });
                 try {
                     // 'data' can be FormData (for images) or plain object
-                    // If passing FormData, axios handles Content-Type automatically
-                    const res = await axios.put('/api/auth/updateProfile', data);
-                    // Note: Check backend route for updateProfile. 
-                    // Wait, I didn't see an explicit '/profile' or '/updateProfile' route in the authRoutes.js I read earlier?
-                    // Let me check the previous 'authRoutes.js' view.
-                    // Ah, I missed checking the exact route path for 'updateProfile'. 
-                    // I will double check, but assuming it's standard or I'll fix it after.
-                    // RE-READING ARTIFACT: authRoutes.js
-                    // Line 22: router.get('/me', ...)
-                    // I don't see an UPDATE route in the file trace I got (step 25).
-                    // Wait, Step 26 (controller) has `exports.updateProfile`.
-                    // But Step 25 (routes) DOES NOT have it listed!
-                    // I need to add the route to backend as well if it's missing, OR the user just wants the frontend store to be complete *based on existing backend*.
-                    // The user said "based on the backkend... completion of this file".
-                    // If the backend doesn't have the route linked, I shouldn't call it, OR I should note it.
-                    // I will disable updateProfile call or uncomment it with a warning if the route isn't there.
-                    // Actually, I'll stick to what acts on the User model.
-                    // Let me Re-verify `authRoutes.js`.
-                    // ...
-                    // It had handleAsync(authController.getProfile) at /me.
-                    // It did NOT have updateProfile.
-                    // So I will assume for now I cannot update profile via API, but I will leave the action there as a placeholder or TODO.
-                    // ACTUALLY, I should perhaps add it to the backend too if I want "complete" implementation? 
-                    // User said "based on the backend... help in creating the userStore... give me the best and complete implementation of THIS FILE".
-                    // So I should implement the store function but maybe comment on the missing route? 
-                    // No, I'll just implement it assuming the route *should* be `/me` or `/profile`. 
-                    // I'll leave it as a TODO or implement generic structure.
-
-                    // Let's assume there is NO update route yet. I will skip `updateProfile` implementation details or just put a placeholder. 
-                    // Converting to using `put('/api/auth/me', data)` is a safe bet if I was fixing backend, but I'm touching frontend.
-                    // I'll omit updateProfile for now to be safe, or just provide current basics.
-
-                    // Wait, I want to be "complete". I'll add the function but comment it out or warn.
-
-                    set({ user: res.data, loading: false });
+                    // Use canonical users/me endpoint which the backend provides
+                    const res = await axios.put('/api/users/me', data);
+                    // backend may return { user: { ... } } or just the user object
+                    set({ user: (res.data?.user || res.data), loading: false });
                     toast.success('Profile updated');
                 } catch (error) {
                     set({ loading: false, error: error.response?.data?.message || 'Update failed' });
                     toast.error("Failed to update profile");
+                }
+            },
+
+            // Set application-level location (used by Near Me, filters, etc.)
+            setAppLocation: async (locationString, options = {}) => {
+                const { saveToProfile = true } = options;
+                set({ appLocation: locationString });
+                try {
+                    // Optionally persist to user profile when authenticated
+                    if (saveToProfile && get().isAuthenticated) {
+                        await axios.put('/api/users/me', { location: locationString });
+                        const me = await axios.get('/api/users/me');
+                        set({ user: (me.data?.user || me.data) });
+                    }
+                } catch (err) {
+                    // non-fatal; keep local appLocation
+                    console.warn('setAppLocation failed', err?.message || err);
                 }
             },
 
@@ -230,6 +217,7 @@ export const useUserStore = create(
 
             startConversation: async ({ recipientId, productId, contextType }) => {
                 try {
+                    console.log(`Starting conversation with ${recipientId} for ${productId} (${contextType})`);
                     const res = await axios.post('/api/conversations', {
                         receiverId: recipientId,
                         productId, // kept for backward compatibility if needed, but backend uses it as contextId
@@ -310,6 +298,52 @@ export const useUserStore = create(
                     return { success: true };
                 } catch (error) {
                     console.error("Send message error:", error);
+                    const msg = error.response?.data?.message || "Failed to send message";
+                    toast.error(msg);
+                    return { success: false, error: msg };
+                }
+            },
+            
+            uploadMessageAttachments: async (files, onProgress) => {
+                try {
+                    const fd = new FormData();
+                    Array.from(files || []).forEach((f) => fd.append('images', f));
+                    const res = await axios.post('/api/messages/attachments', fd, {
+                        headers: { 'Content-Type': 'multipart/form-data' },
+                        onUploadProgress: (evt) => {
+                            if (!evt.total) return;
+                            const pct = Math.round((evt.loaded / evt.total) * 100);
+                            if (typeof onProgress === 'function') onProgress(pct);
+                        }
+                    });
+                    const urls = res.data?.attachments || [];
+                    return { success: true, urls };
+                } catch (error) {
+                    console.error("Upload attachments error:", error);
+                    const msg = error.response?.data?.message || "Failed to upload attachments";
+                    toast.error(msg);
+                    return { success: false, error: msg, urls: [] };
+                }
+            },
+            
+            sendMessageWithAttachments: async (conversationId, content, attachments = []) => {
+                try {
+                    const res = await axios.post('/api/messages', {
+                        conversationId,
+                        text: content,
+                        attachments
+                    });
+                    const currentMessages = get().messages;
+                    if (currentMessages && currentMessages.messages) {
+                        set({
+                            messages: {
+                                messages: [...currentMessages.messages, res.data]
+                            }
+                        });
+                    }
+                    return { success: true };
+                } catch (error) {
+                    console.error("Send message with attachments error:", error);
                     const msg = error.response?.data?.message || "Failed to send message";
                     toast.error(msg);
                     return { success: false, error: msg };

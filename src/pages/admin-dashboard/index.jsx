@@ -270,9 +270,9 @@ export default function AdminDashboard() {
     return sorted.map(d => ({ day: new Date(d.date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }), count: Number(d.count || 0) }));
   }, [dailyAdded]);
   const colors = ['#3b82f6','#10b981','#f59e0b','#a855f7','#ef4444','#6366f1','#14b8a6'];
-  const pieData = categoryDist.map(c => ({ name: c.title || 'Category', value: Number(c.count || 0) }));
-  const avgPriceData = avgPriceCatAll.map(c => ({ name: c.title || 'Category', avg: Number(c.avgPrice || 0) }));
-  const topSalesData = topSalesCat.map(c => ({ name: c.title || 'Category', total: Number(c.totalSales || 0) }));
+  const pieData = categoryDist.map(c => ({ name: c.title || c.name || 'Uncategorized', value: Number(c.count || 0) }));
+  const avgPriceData = avgPriceCatAll.map(c => ({ name: c.title || c.name || 'Uncategorized', avg: Number(c.avgPrice || 0) }));
+  const topSalesData = topSalesCat.map(c => ({ name: c.title || c.name || 'Uncategorized', total: Number(c.totalSales || 0) }));
 
   if (!user?._id || user?.role !== 'admin') {
     return <Navigate to="/user-dashboard" replace />;
@@ -503,7 +503,7 @@ export default function AdminDashboard() {
                     <div>
                       <div style={{ fontWeight: 600 }}>{p.title}</div>
                       <div style={{ fontSize: 12, color: '#6b7280' }}>
-                        ₹{p.price} • {p.location || 'No location'} • {p.category?.name || p.category}
+                        ₹{p.price} • {p.location || 'No location'} • {p.category?.title || p.category?.name || (typeof p.category === 'string' ? p.category : 'Uncategorized')}
                       </div>
                     </div>
                     <button
@@ -568,7 +568,7 @@ export default function AdminDashboard() {
                     <img src={(s.images && (s.images[0]?.url || s.images[0])) || 'https://via.placeholder.com/64x64.png?text=+'} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', border: '1px solid #e5e7eb' }} />
                     <div>
                       <div style={{ fontWeight: 600 }}>{s.title}</div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>{s.category} • ₹{s.price}</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>{s.category} • ₹{Number(s.price || 0).toLocaleString('en-IN')}</div>
                     </div>
                     <button style={styles.btn} onClick={(e) => { e.stopPropagation(); blockService(s._id, !s.isAvailable); }}>{s.isAvailable ? 'Block' : 'Unblock'}</button>
                     <button style={styles.btnAlt} onClick={(e) => { e.stopPropagation(); deleteService(s._id); }}>Delete</button>

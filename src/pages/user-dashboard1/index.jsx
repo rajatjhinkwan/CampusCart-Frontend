@@ -8,9 +8,10 @@ import { SalesChart } from './components/SalesChart';
 import { RecentActivity } from './components/RecentActivity';
 import {
   TrendingUp,
-  DollarSign,
+  Wallet,
   Users,
   ShoppingCart,
+  DollarSign,
 } from 'lucide-react';
 
 // IMPORT USER PAGES
@@ -69,7 +70,7 @@ export default function UserDashboard() {
   const [metricCols, setMetricCols] = useState(1);
   const [isDesktopLayout, setIsDesktopLayout] = useState(false);
   const [metrics, setMetrics] = useState([
-    { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: DollarSign },
+    { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: Wallet },
     { title: 'Active Users', value: '0', change: '', trend: 'up', icon: Users },
     { title: 'Total Orders', value: '0', change: '', trend: 'up', icon: ShoppingCart },
     { title: 'Growth Rate', value: '0.0%', change: '', trend: 'up', icon: TrendingUp },
@@ -178,7 +179,7 @@ export default function UserDashboard() {
         setWasteAvoidedKg(Number(wasteKg.toFixed(1)));
 
         setMetrics([
-          { title: 'Total Revenue', value: `₹${revenueSum}`, change: '', trend: 'up', icon: DollarSign },
+          { title: 'Total Revenue', value: `₹${revenueSum.toLocaleString('en-IN')}`, change: '', trend: 'up', icon: Wallet },
           { title: 'Active Users', value: String(participantSet.size), change: '', trend: 'up', icon: Users },
           { title: 'Total Orders', value: String(sold.length), change: '', trend: 'up', icon: ShoppingCart },
           { title: 'Growth Rate', value: `${rateFixed}%`, change: changeStr, trend: trendDir, icon: TrendingUp },
@@ -189,7 +190,7 @@ export default function UserDashboard() {
         setCarbonTotal(0);
         setWasteAvoidedKg(0);
         setMetrics([
-          { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: DollarSign },
+          { title: 'Total Revenue', value: '₹0', change: '', trend: 'up', icon: Wallet },
           { title: 'Active Users', value: '0', change: '', trend: 'up', icon: Users },
           { title: 'Total Orders', value: '0', change: '', trend: 'up', icon: ShoppingCart },
           { title: 'Growth Rate', value: '0.0%', change: '', trend: 'up', icon: TrendingUp },

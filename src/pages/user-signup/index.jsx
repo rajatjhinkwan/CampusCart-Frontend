@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { User, Lock, ShieldCheck, Rocket } from "lucide-react";
+import { User, Lock, Rocket, Eye, EyeOff, Mail, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
  
 import { useUserStore } from "../../store/userStore";
@@ -10,22 +10,84 @@ export default function Signup() {
         fullName: "",
         email: "",
         password: "",
+        confirmPassword: "",
         role: "buyer",
+        location: "",
     });
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [error, setError] = useState("");
+    const loading = useUserStore((s) => s.loading);
+    
+    // Location Autocomplete State
+    const [suggestions, setSuggestions] = useState([]);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const searchTimeoutRef = useRef(null);
 
+    const handleLocationSearch = async (query) => {
+        if (!query || query.length < 3) {
+            setSuggestions([]);
+            return;
+        }
+        
+        try {
+            const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+            const res = await fetch(`${photonBase}/api/?q=${encodeURIComponent(query)}&limit=5&lang=en`);
+            if (res.ok) {
+                const data = await res.json();
+                const cities = data.features.map(f => {
+                    const p = f.properties;
+                    return p.city || p.town || p.village || p.name;
+                }).filter((v, i, a) => v && a.indexOf(v) === i);
+                setSuggestions(cities);
+                setShowSuggestions(true);
+            }
+        } catch (err) {
+            console.error("Location search failed", err);
+        }
+    };
 
     const handleChange = (e) => {
-        setFormData({
-            ...formData,
-            [e.target.name]: e.target.value,
-        });
+        const { name, value } = e.target;
+        setFormData(prev => ({ ...prev, [name]: value }));
+        
+        if (name === 'location') {
+            if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+            searchTimeoutRef.current = setTimeout(() => {
+                handleLocationSearch(value);
+            }, 300);
+        }
+    };
+
+    const selectSuggestion = (city) => {
+        setFormData(prev => ({ ...prev, location: city }));
+        setShowSuggestions(false);
     };
 
 
     const signup = useUserStore((state) => state.signup);
+    const setAppLocation = useUserStore((s) => s.setAppLocation);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setError("");
+
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+            setError("Please enter a valid email address");
+            return;
+        }
+        if (!formData.fullName.trim()) {
+            setError("Full name is required");
+            return;
+        }
+        if (!formData.password || formData.password.length < 6) {
+            setError("Password must be at least 6 characters");
+            return;
+        }
+        if (formData.password !== formData.confirmPassword) {
+            setError("Passwords do not match");
+            return;
+        }
 
         const payload = {
             name: formData.fullName,
@@ -37,9 +99,13 @@ export default function Signup() {
         const result = await signup(payload);
 
         if (result.success) {
+            if (formData.location) {
+                await setAppLocation(formData.location, { saveToProfile: true });
+            }
             navigate("/homepage");
         } else {
             console.error("Signup failed:", result.error);
+            setError(result.error || "Signup failed");
             // Optional: set local error state to display in UI if desired, 
             // but toast is already handled in store.
         }
@@ -134,10 +200,29 @@ export default function Signup() {
             width: "100%",
             border: "1px solid #d1d5db",
             borderRadius: "8px",
-            padding: "10px",
+            padding: "10px 36px 10px 36px",
             fontSize: "14px",
             marginBottom: "20px",
             outline: "none",
+        },
+        inputIcon: {
+            position: "absolute",
+            left: "10px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            color: "#9ca3af",
+            width: "18px",
+            height: "18px",
+        },
+        toggleBtn: {
+            position: "absolute",
+            right: "8px",
+            top: "50%",
+            transform: "translateY(-50%)",
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            color: "#6b7280",
         },
         button: {
             width: "100%",
@@ -148,6 +233,7 @@ export default function Signup() {
             fontSize: "15px",
             border: "none",
             cursor: "pointer",
+            opacity: loading ? 0.7 : 1,
         },
         loginText: {
             textAlign: "center",
@@ -160,6 +246,30 @@ export default function Signup() {
             marginLeft: "4px",
             cursor: "pointer",
         },
+        strengthBar: {
+            height: "6px",
+            backgroundColor: "#e5e7eb",
+            borderRadius: "9999px",
+            marginTop: "6px",
+            marginBottom: "14px",
+        },
+        strengthFill: (pct) => ({
+            width: `${pct}%`,
+            height: "100%",
+            borderRadius: "9999px",
+            background: pct >= 75 ? "#16a34a" : pct >= 50 ? "#f59e0b" : "#ef4444",
+        }),
+    };
+
+    const passwordStrength = (pwd) => {
+        let score = 0;
+        if (!pwd) return 0;
+        if (pwd.length >= 6) score += 25;
+        if (pwd.length >= 10) score += 25;
+        if (/[A-Z]/.test(pwd)) score += 15;
+        if (/\d/.test(pwd)) score += 15;
+        if (/[^A-Za-z0-9]/.test(pwd)) score += 20;
+        return Math.min(score, 100);
     };
 
     return (
@@ -241,46 +351,139 @@ export default function Signup() {
 
                     {/* FULL NAME */}
                     <label style={styles.inputLabel}>Full Name *</label>
-                    <input
-                        type="text"
-                        name="fullName"
-                        placeholder="Enter full name"
-                        value={formData.fullName}
-                        onChange={handleChange}
-                        style={styles.input}
-                        required
-                    />
+                    <div style={{ position: "relative" }}>
+                        <input
+                            type="text"
+                            name="fullName"
+                            placeholder="Enter full name"
+                            value={formData.fullName}
+                            onChange={handleChange}
+                            style={styles.input}
+                            required
+                        />
+                        <User style={styles.inputIcon} />
+                    </div>
 
                     {/* EMAIL */}
                     <label style={styles.inputLabel}>Email Address *</label>
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Enter your email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        style={styles.input}
-                        required
-                    />
+                    <div style={{ position: "relative" }}>
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="Enter your email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            style={styles.input}
+                            required
+                        />
+                        <Mail style={styles.inputIcon} />
+                    </div>
+
+                    {/* LOCATION (CITY) */}
+                    <label style={styles.inputLabel}>Your City (for Nearby)</label>
+                    <div style={{ position: "relative", display: 'flex', gap: 8 }}>
+                        <div style={{ position: 'relative', flex: 1 }}>
+                          <input
+                              type="text"
+                              name="location"
+                              placeholder="e.g. Chamoli, Dehradun, Lucknow"
+                              value={formData.location}
+                              onChange={handleChange}
+                              onFocus={() => formData.location.length >= 3 && setShowSuggestions(true)}
+                              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                              style={styles.input}
+                              autoComplete="off"
+                          />
+                          <MapPin style={styles.inputIcon} />
+                          
+                          {/* Suggestions Dropdown */}
+                          {showSuggestions && suggestions.length > 0 && (
+                              <div style={{
+                                  position: 'absolute',
+                                  top: '100%',
+                                  left: 0,
+                                  right: 0,
+                                  background: 'white',
+                                  border: '1px solid #e5e7eb',
+                                  borderRadius: '8px',
+                                  marginTop: '4px',
+                                  maxHeight: '200px',
+                                  overflowY: 'auto',
+                                  zIndex: 50,
+                                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                              }}>
+                                  {suggestions.map((s, i) => (
+                                      <div
+                                          key={i}
+                                          onClick={() => selectSuggestion(s)}
+                                          style={{
+                                              padding: '10px 12px',
+                                              cursor: 'pointer',
+                                              borderBottom: i < suggestions.length - 1 ? '1px solid #f3f4f6' : 'none',
+                                              fontSize: '14px',
+                                              color: '#374151'
+                                          }}
+                                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                                      >
+                                          {s}
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+                        </div>
+                    </div>
 
                     {/* PASSWORD */}
                     <label style={styles.inputLabel}>Password *</label>
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Enter password"
-                        value={formData.password}
-                        onChange={handleChange}
-                        style={styles.input}
-                        required
-                    />
+                    <div style={{ position: "relative" }}>
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            name="password"
+                            placeholder="Enter password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            style={styles.input}
+                            required
+                        />
+                        <Lock style={styles.inputIcon} />
+                        <button type="button" onClick={() => setShowPassword((s) => !s)} style={styles.toggleBtn} aria-label="Toggle password visibility">
+                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
+                    <div style={styles.strengthBar}>
+                        <div style={styles.strengthFill(passwordStrength(formData.password))} />
+                    </div>
+
+                    {/* CONFIRM PASSWORD */}
+                    <label style={styles.inputLabel}>Confirm Password *</label>
+                    <div style={{ position: "relative" }}>
+                        <input
+                            type={showConfirm ? "text" : "password"}
+                            name="confirmPassword"
+                            placeholder="Re-enter password"
+                            value={formData.confirmPassword}
+                            onChange={handleChange}
+                            style={styles.input}
+                            required
+                        />
+                        <Lock style={styles.inputIcon} />
+                        <button type="button" onClick={() => setShowConfirm((s) => !s)} style={styles.toggleBtn} aria-label="Toggle confirm visibility">
+                            {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                    </div>
 
                     {/* BUTTON */}
-                    <button type="submit" style={styles.button}>Sign Up</button>
+                    {error ? (
+                        <div style={{ marginBottom: "12px", background: "#fee2e2", color: "#991b1b", padding: "10px", borderRadius: "8px", fontSize: "13px" }}>
+                            {error}
+                        </div>
+                    ) : null}
+                    <button type="submit" style={styles.button} disabled={loading}>{loading ? "Creating Account..." : "Sign Up"}</button>
 
                     <p style={styles.loginText} onClick={() => navigate("/user-login")}>
                         Already have an account?
-                        <a href="/login" style={styles.loginLink}>Sign In</a>
+                        <span style={styles.loginLink}>Sign In</span>
                     </p>
                 </form>
             </div>

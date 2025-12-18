@@ -44,8 +44,10 @@ export default function JobDetails() {
         }
         
         const employerId = job.postedBy?._id || job.postedBy;
+        console.log("Apply Now - Employer ID:", employerId, "Job Posted By:", job.postedBy);
+        
         if (!employerId) {
-            toast.error("Employer info missing");
+            toast.error("Employer info missing - cannot apply");
             return;
         }
 

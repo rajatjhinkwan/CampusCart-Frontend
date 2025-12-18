@@ -61,6 +61,14 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
   if (loading) return <div style={styles.noResults}>Loading {type.toLowerCase()}...</div>;
   if (error) return <div style={styles.noResults}>{error}</div>;
 
+  const formatPrice = (p) => {
+      if (typeof p === 'number') return `₹ ${p.toLocaleString('en-IN')}`;
+      if (!p) return "₹ Not provided";
+      const num = Number(p);
+      if (!isNaN(num) && p !== "") return `₹ ${num.toLocaleString('en-IN')}`;
+      return p;
+  };
+
   if (type === "Jobs") {
     return (
       <div style={styles.listContainer}>
@@ -68,11 +76,7 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
           displayList.map((item, index) => {
             let salary = "₹ Not provided";
             if (item.salary !== undefined && item.salary !== null) {
-              if (typeof item.salary === "number") {
-                salary = `₹ ${item.salary.toLocaleString("en-IN")}`;
-              } else if (typeof item.salary === "string" && item.salary.trim() !== "") {
-                salary = item.salary;
-              }
+                salary = formatPrice(item.salary);
             }
 
             const uiItem = {
@@ -108,9 +112,7 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
             uiItem = {
               id: item._id,
               title: item.title,
-              price: item.rent
-                ? `₹ ${item.rent.toLocaleString("en-IN")}`
-                : "₹ Not provided",
+              price: formatPrice(item.rent),
               image: item?.images?.[0]?.url || "https://via.placeholder.com/300",
               seller: item.seller?.name || "User",
               condition: item.furnished || "Unknown",
@@ -137,10 +139,7 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
             uiItem = {
               id: item._id,
               title: item.title,
-              price:
-                typeof item.price === "number"
-                  ? `₹ ${item.price.toLocaleString("en-IN")}`
-                  : item.price || "₹ Not provided",
+              price: formatPrice(item.price),
               image: firstImage,
               seller: item.provider?.name || item.seller?.name || "User",
               condition: item.condition || "Unknown",
@@ -160,10 +159,7 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
             uiItem = {
               id: item._id,
               title: item.title,
-              price:
-                typeof item.price === "number"
-                  ? `₹ ${item.price.toLocaleString("en-IN")}`
-                  : item.price || "₹ Not provided",
+              price: formatPrice(item.price),
               image: item?.images?.[0]?.url || item?.image || "https://via.placeholder.com/300",
               seller: item.seller?.name || item.seller || "User",
               condition: item.condition || "Unknown",

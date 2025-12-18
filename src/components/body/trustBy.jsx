@@ -3,7 +3,7 @@ import {
   Zap,
   Users,
   ShieldCheck,
-  DollarSign
+  Wallet
 } from "lucide-react";
 
 const SellingSection = () => {
@@ -120,6 +120,7 @@ const SellingSection = () => {
         <div style={styles.buttonGroup}>
           <button 
             style={styles.primaryButton}
+            onClick={() => window.location.href = '/sell-item'}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow = "0 15px 30px rgba(0,0,0,0.15)";
@@ -133,6 +134,7 @@ const SellingSection = () => {
           </button>
           <button 
             style={styles.secondaryButton}
+            onClick={() => window.location.href = '/for-users/how-to-sell'}
             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.2)"}
             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "rgba(255,255,255,0.1)"}
           >
@@ -157,7 +159,7 @@ const SellingSection = () => {
             <div style={styles.featureText}>Verified users and secure communication.</div>
           </div>
           <div style={styles.featureBox}>
-            <div style={styles.featureIcon}><DollarSign size={32} /></div>
+            <div style={styles.featureIcon}><Wallet size={32} /></div>
             <div style={styles.featureTitle}>Zero Fees</div>
             <div style={styles.featureText}>Keep 100% of your earnings. No hidden charges.</div>
           </div>
