@@ -326,6 +326,7 @@ export default function SellItem() {
           onPhotosChange={updatePhotos}
           onNext={() => setStep(4)}
           onBack={() => setStep(2)}
+          categoryType={form.categoryType}
         />
       )}
 

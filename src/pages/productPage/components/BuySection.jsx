@@ -25,7 +25,7 @@ const BuySection = ({ product }) => {
   const handleAction = async () => {
     if (!isAuthenticated) {
       toast.error("Please login first");
-      navigate("/login");
+      navigate("/user-login");
       return;
     }
 
@@ -62,7 +62,7 @@ const BuySection = ({ product }) => {
         
         await sendMessage(conversationId, initialMsg);
         
-        navigate("/messages");
+        navigate("/user-messages");
       } else {
         toast.error(error || "Failed to start conversation");
       }
@@ -77,28 +77,63 @@ const BuySection = ({ product }) => {
   const styles = {
     card: {
       background: "#fff",
-      border: "1px solid #ddd",
-      borderRadius: "6px",
-      padding: "20px",
+      borderRadius: "16px",
+      padding: "25px",
       textAlign: "center",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
     },
-    price: { fontSize: "28px", fontWeight: "bold", marginBottom: "15px", color: isRent ? "#b45309" : "#000" },
-    subPrice: { fontSize: "14px", color: "#666", marginBottom: "15px" },
-    inputGroup: { marginBottom: "15px", textAlign: "left" },
-    label: { display: "block", fontSize: "14px", color: "#333", marginBottom: "5px" },
-    input: { width: "100%", padding: "8px", border: "1px solid #ccc", borderRadius: "4px" },
-    total: { fontSize: "16px", fontWeight: "600", color: "#333", margin: "15px 0", borderTop: "1px dashed #ccc", paddingTop: "10px" },
+    price: { 
+        fontSize: "32px", 
+        fontWeight: "800", 
+        marginBottom: "8px", 
+        color: isRent ? "#b45309" : "#0f172a" 
+    },
+    subPrice: { 
+        fontSize: "14px", 
+        color: "#64748b", 
+        marginBottom: "24px" 
+    },
+    inputGroup: { 
+        marginBottom: "20px", 
+        textAlign: "left" 
+    },
+    label: { 
+        display: "block", 
+        fontSize: "14px", 
+        color: "#475569", 
+        marginBottom: "8px",
+        fontWeight: "600"
+    },
+    input: { 
+        width: "100%", 
+        padding: "12px", 
+        border: "1px solid #e2e8f0", 
+        borderRadius: "8px",
+        fontSize: "16px",
+        outline: "none",
+        transition: "border-color 0.2s"
+    },
+    total: { 
+        fontSize: "18px", 
+        fontWeight: "700", 
+        color: "#1e293b", 
+        margin: "20px 0", 
+        borderTop: "1px dashed #e2e8f0", 
+        paddingTop: "15px" 
+    },
     button: {
       width: "100%",
-      padding: "12px",
-      background: isRent ? "#f59e0b" : "#007bff",
+      padding: "16px",
+      background: isRent ? "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)" : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
       color: "white",
       border: "none",
-      borderRadius: "6px",
+      borderRadius: "12px",
       cursor: loading ? "not-allowed" : "pointer",
       fontSize: "16px",
-      fontWeight: "bold",
-      opacity: loading ? 0.7 : 1,
+      fontWeight: "700",
+      opacity: loading ? 0.8 : 1,
+      boxShadow: isRent ? "0 4px 12px rgba(245, 158, 11, 0.3)" : "0 4px 12px rgba(37, 99, 235, 0.3)",
+      transition: "transform 0.1s"
     },
   };
 

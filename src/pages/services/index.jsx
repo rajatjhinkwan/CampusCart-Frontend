@@ -4,6 +4,8 @@ import axios from "../../lib/axios";
 import toast from "react-hot-toast";
 import { useUserStore } from "../../store/userStore.js";
 import Navbar from "../../components/navbar.jsx";
+import Skeleton from "../../components/Skeleton.jsx";
+import ReviewSection from "../../components/ReviewSection.jsx";
 
 // ------------------------------------
 // NORMALIZE LOCATION
@@ -20,22 +22,6 @@ const normalizeLocation = (loc) => {
 };
 
 // ------------------------------------
-// SKELETON UI (Shimmer)
-// ------------------------------------
-const Skeleton = () => (
-    <div style={{ padding: "20px" }}>
-        <div style={skeletonStyles.bigImage}></div>
-        <div style={{ marginTop: 20 }}>
-            <div style={skeletonStyles.line}></div>
-            <div style={skeletonStyles.lineShort}></div>
-            <div style={skeletonStyles.line}></div>
-            <div style={skeletonStyles.line}></div>
-            <div style={skeletonStyles.lineShort}></div>
-        </div>
-    </div>
-);
-
-// ------------------------------------
 // SERVICE DETAIL PAGE
 // ------------------------------------
 export default function ServiceDetail() {
@@ -49,6 +35,12 @@ export default function ServiceDetail() {
     const [activeImage, setActiveImage] = useState(null);
     const [reportReason, setReportReason] = useState("");
     const [reportMessage, setReportMessage] = useState("");
+    const dummyReviews = [
+        { id: 1, user: "Meera", rating: 5, date: "2025-08-01", text: "Excellent service, quick response and professional." },
+        { id: 2, user: "Sanjay", rating: 4, date: "2025-07-12", text: "Good work, reasonable pricing." },
+        { id: 3, user: "Isha", rating: 5, date: "2025-06-25", text: "Highly recommended, very polite and punctual." }
+    ];
+    const avgRating = dummyReviews.reduce((a, r) => a + r.rating, 0) / dummyReviews.length;
 
     useEffect(() => {
         fetchService();
@@ -77,7 +69,7 @@ export default function ServiceDetail() {
     const handleContact = async () => {
         if (!isAuthenticated) {
             toast.error("Please login to contact provider");
-            navigate("/login");
+            navigate("/user-login");
             return;
         }
         const providerId = service.provider?._id || service.provider;
@@ -103,7 +95,7 @@ export default function ServiceDetail() {
             if (success && conversationId) {
                 // Send initial inquiry message
                 await useUserStore.getState().sendMessage(conversationId, `Hi, I'm interested in your service "${service.title}".`);
-                navigate("/messages");
+                navigate("/user-messages");
             } else {
                 toast.error(error || "Failed to start chat");
             }
@@ -118,7 +110,50 @@ export default function ServiceDetail() {
     if (loading) return (
         <>
             <Navbar />
-            <Skeleton />
+            <div style={styles.page}>
+                <div style={styles.topContainer}>
+                    {/* Gallery Skeleton */}
+                    <div style={styles.gallery}>
+                        <Skeleton width="100%" height="400px" style={{ borderRadius: "16px", marginBottom: "16px" }} />
+                        <div style={styles.thumbnailRow}>
+                            <Skeleton width="80px" height="80px" style={{ borderRadius: "12px" }} />
+                            <Skeleton width="80px" height="80px" style={{ borderRadius: "12px" }} />
+                            <Skeleton width="80px" height="80px" style={{ borderRadius: "12px" }} />
+                        </div>
+                    </div>
+                    
+                    {/* InfoBox Skeleton */}
+                    <div style={{ ...styles.infoBox, height: "auto" }}>
+                        <Skeleton width="80%" height="40px" style={{ marginBottom: "16px" }} />
+                        <Skeleton width="40%" height="32px" style={{ marginBottom: "24px" }} />
+                        
+                        <div style={{ marginBottom: "16px" }}>
+                            <Skeleton width="100%" height="1px" style={{ marginBottom: "16px" }} />
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <Skeleton width="30%" height="20px" />
+                                <Skeleton width="40%" height="20px" />
+                            </div>
+                        </div>
+                        <div style={{ marginBottom: "16px" }}>
+                            <Skeleton width="100%" height="1px" style={{ marginBottom: "16px" }} />
+                            <div style={{ display: "flex", justifyContent: "space-between" }}>
+                                <Skeleton width="30%" height="20px" />
+                                <Skeleton width="40%" height="20px" />
+                            </div>
+                        </div>
+
+                        <Skeleton width="100%" height="50px" style={{ borderRadius: "12px", marginTop: "25px" }} />
+                    </div>
+                </div>
+
+                {/* Description Skeleton */}
+                <div style={styles.section}>
+                    <Skeleton width="200px" height="30px" style={{ marginBottom: "16px" }} />
+                    <Skeleton width="100%" height="20px" style={{ marginBottom: "10px" }} />
+                    <Skeleton width="100%" height="20px" style={{ marginBottom: "10px" }} />
+                    <Skeleton width="80%" height="20px" />
+                </div>
+            </div>
         </>
     );
     if (!service)
@@ -132,7 +167,7 @@ export default function ServiceDetail() {
     return (
         <>
             <Navbar />
-            <div style={styles.page}>
+            <div style={styles.page} className="fade-in">
             {/* ---------------------------------- */}
             {/* IMAGE GALLERY + DETAILS */}
             {/* ---------------------------------- */}
@@ -199,12 +234,12 @@ export default function ServiceDetail() {
                     >
                         {contactLoading ? "Processing..." : "Contact Provider"}
                     </button>
-                    <div style={{ marginTop: 16, padding: 12, border: "1px solid #eee", borderRadius: 8 }}>
-                        <div style={{ fontWeight: "bold", marginBottom: 8 }}>Report Service</div>
+                    <div style={{ marginTop: 24, padding: "20px", background: "#fff", borderRadius: "16px", boxShadow: "0 10px 30px rgba(0,0,0,0.05)" }}>
+                        <div style={{ fontWeight: "700", marginBottom: "12px", color: "#1e293b", fontSize: "16px" }}>Report Service</div>
                         <select
                             value={reportReason}
                             onChange={(e) => setReportReason(e.target.value)}
-                            style={{ width: "100%", padding: 8, marginBottom: 8 }}
+                            style={{ width: "100%", padding: "12px", marginBottom: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", outline: "none", fontSize: "14px", color: "#475569" }}
                         >
                             <option value="">Select a reason</option>
                             <option value="spam">Spam or misleading</option>
@@ -217,7 +252,7 @@ export default function ServiceDetail() {
                             placeholder="Optional details"
                             value={reportMessage}
                             onChange={(e) => setReportMessage(e.target.value)}
-                            style={{ width: "100%", padding: 8, minHeight: 80, marginBottom: 8 }}
+                            style={{ width: "100%", padding: "12px", minHeight: "80px", marginBottom: "12px", borderRadius: "8px", border: "1px solid #e2e8f0", outline: "none", fontSize: "14px", fontFamily: "inherit", resize: "vertical" }}
                         />
                         <button
                             onClick={async () => {
@@ -236,7 +271,7 @@ export default function ServiceDetail() {
                                     toast.error(e.response?.data?.message || "Failed to submit report");
                                 }
                             }}
-                            style={{ padding: "8px 12px", background: "#ef4444", color: "#fff", border: "none", borderRadius: 6 }}
+                            style={{ padding: "10px 16px", background: "#ef4444", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer", transition: "background 0.2s" }}
                         >
                             Report
                         </button>
@@ -253,6 +288,8 @@ export default function ServiceDetail() {
                     {service.description || "No description provided."}
                 </p>
             </div>
+
+            <ReviewSection targetId={service._id} targetType="service" />
 
             {/* ---------------------------------- */}
             {/* PROVIDER DETAILS */}
@@ -299,189 +336,184 @@ export default function ServiceDetail() {
 const styles = {
     page: {
         maxWidth: 1200,
-        margin: "30px auto",
-        padding: "0 20px",
-        fontFamily: "Inter, sans-serif",
+        margin: "0 auto",
+        padding: "30px 20px",
+        fontFamily: "'Inter', sans-serif",
+        backgroundColor: "#f8fafc",
+        minHeight: "100vh",
     },
 
     topContainer: {
         display: "flex",
         gap: 30,
         flexWrap: "wrap",
-        marginBottom: 30,
+        marginBottom: 35,
     },
 
     gallery: {
-        flex: 1,
+        flex: 1.5,
         minWidth: 350,
     },
 
     mainImage: {
         width: "100%",
-        height: 380,
+        height: 400,
         objectFit: "cover",
-        borderRadius: 12,
-        boxShadow: "0 4px 18px rgba(0,0,0,0.12)",
+        borderRadius: 16,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
     },
 
     thumbnailRow: {
         display: "flex",
         gap: 12,
-        marginTop: 12,
+        marginTop: 16,
         flexWrap: "wrap",
     },
 
     thumbnail: {
-        width: 70,
-        height: 70,
-        borderRadius: 10,
+        width: 80,
+        height: 80,
+        borderRadius: 12,
         objectFit: "cover",
         cursor: "pointer",
+        transition: "transform 0.2s",
     },
 
     infoBox: {
         flex: 1,
-        minWidth: 300,
+        minWidth: 320,
         background: "white",
-        padding: 25,
-        borderRadius: 12,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.12)",
+        padding: 30,
+        borderRadius: 20,
+        boxShadow: "0 15px 35px rgba(0,0,0,0.08)",
+        height: "fit-content",
     },
 
     title: {
-        fontSize: 28,
-        fontWeight: 700,
+        fontSize: 32,
+        fontWeight: 800,
+        color: "#0f172a",
+        lineHeight: 1.2,
     },
 
     price: {
-        marginTop: 10,
-        fontSize: 26,
+        marginTop: 12,
+        fontSize: 28,
         fontWeight: 700,
-        color: "#1e293b",
+        color: "#2563eb",
     },
 
     negotiable: {
-        marginTop: 6,
+        marginTop: 8,
         display: "inline-block",
         background: "#10b981",
         color: "white",
-        padding: "5px 12px",
-        borderRadius: 8,
-        fontSize: 14,
+        padding: "6px 14px",
+        borderRadius: 20,
+        fontSize: 13,
+        fontWeight: 600,
     },
 
     infoLine: {
-        marginTop: 14,
+        marginTop: 16,
+        display: "flex",
+        justifyContent: "space-between",
+        borderBottom: "1px solid #f1f5f9",
+        paddingBottom: 8,
     },
 
     label: {
-        fontSize: 14,
+        fontSize: 15,
         color: "#64748b",
+        fontWeight: 500,
     },
 
     value: {
         fontSize: 16,
-        fontWeight: 500,
+        fontWeight: 600,
         color: "#1e293b",
     },
 
     contactBtn: {
         marginTop: 25,
-        padding: "14px 0",
+        padding: "16px 0",
         width: "100%",
-        background: "#2563eb",
+        background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
         color: "white",
         border: "none",
-        borderRadius: 10,
+        borderRadius: 12,
         fontSize: 16,
+        fontWeight: 700,
         cursor: "pointer",
+        boxShadow: "0 4px 12px rgba(37, 99, 235, 0.3)",
+        transition: "transform 0.1s",
     },
 
     section: {
         background: "white",
-        padding: 25,
-        borderRadius: 12,
-        marginBottom: 30,
-        boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+        padding: 30,
+        borderRadius: 20,
+        marginBottom: 35,
+        boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
     },
 
     sectionTitle: {
-        fontSize: 22,
-        fontWeight: 600,
-        marginBottom: 12,
+        fontSize: 24,
+        fontWeight: 700,
+        marginBottom: 16,
+        color: "#1e293b",
     },
 
     desc: {
         fontSize: 16,
-        color: "#334155",
-        lineHeight: 1.6,
+        color: "#475569",
+        lineHeight: 1.7,
     },
 
     sellerCard: {
         display: "flex",
         alignItems: "center",
-        gap: 15,
+        gap: 16,
         paddingTop: 10,
     },
 
     sellerAvatar: {
-        width: 55,
-        height: 55,
+        width: 64,
+        height: 64,
         borderRadius: "50%",
-        background: "#2563eb",
+        background: "linear-gradient(135deg, #2563eb 0%, #60a5fa 100%)",
         color: "white",
-        fontSize: 24,
+        fontSize: 28,
+        fontWeight: 700,
         display: "flex",
         justifyContent: "center",
         alignItems: "center",
     },
 
     sellerName: {
-        fontSize: 18,
-        fontWeight: 600,
+        fontSize: 20,
+        fontWeight: 700,
+        color: "#1e293b",
     },
 
     sellerLabel: {
         fontSize: 14,
         color: "#64748b",
+        marginTop: 2,
     },
 
     mapPlaceholder: {
         width: "100%",
-        height: 150,
-        marginTop: 15,
-        background: "#e2e8f0",
-        borderRadius: 12,
+        height: 200,
+        marginTop: 20,
+        background: "#f1f5f9",
+        borderRadius: 16,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#94a3b8",
+        fontWeight: 500,
     },
 };
 
-// ------------------------------------
-// SKELETON STYLES
-// ------------------------------------
-const skeletonStyles = {
-    bigImage: {
-        width: "100%",
-        height: 350,
-        borderRadius: 12,
-        background: "linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)",
-        animation: "shimmer 1.5s infinite",
-        backgroundSize: "200% 100%",
-    },
 
-    line: {
-        height: 20,
-        marginBottom: 12,
-        borderRadius: 8,
-        background: "linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)",
-        animation: "shimmer 1.5s infinite",
-    },
-
-    lineShort: {
-        height: 20,
-        width: "50%",
-        marginBottom: 12,
-        borderRadius: 8,
-        background: "linear-gradient(90deg, #f1f5f9, #e2e8f0, #f1f5f9)",
-        animation: "shimmer 1.5s infinite",
-    },
-};

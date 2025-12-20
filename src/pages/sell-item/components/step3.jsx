@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import axios from "../../../lib/axios";
+import toast from "react-hot-toast";
 import { UploadCloud, X, Image as ImageIcon } from "lucide-react";
 import ProgressBar from "./progressBar"; // Ensure correct path to your ProgressBar component
 
@@ -7,6 +9,7 @@ export default function Step3({
   onPhotosChange,
   onNext,
   onBack,
+  categoryType,
 }) {
   const [isDragging, setIsDragging] = useState(false);
 
@@ -42,9 +45,26 @@ export default function Step3({
         const combinedPhotos = [...photos, ...validImageFiles];
         // Call the parent function to update master state
         onPhotosChange(combinedPhotos);
+
+        const first = validImageFiles[0];
+        if (first && categoryType === "Product") {
+          const fd = new FormData();
+          fd.append("image", first);
+          axios
+            .post("/api/ml/predict", fd, { headers: { "Content-Type": "multipart/form-data" } })
+            .then((res) => {
+              const data = res?.data?.data || {};
+              const label = data.label || data.prediction || data.class || (data.result && data.result.label) || "Item";
+              toast.success(`${label} detected by ML`);
+            })
+            .catch((err) => {
+              const msg = err?.response?.data?.message || err?.message || "ML detection failed";
+              toast.error(msg);
+            });
+        }
       }
     },
-    [photos, onPhotosChange]
+    [photos, onPhotosChange, categoryType]
   );
 
   // Handle standard file input selection

@@ -1,12 +1,75 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useJsApiLoader } from '@react-google-maps/api';
 import axios from "../../../lib/axios";
 import { useUserStore } from "../../../store/userStore";
+import Skeleton from "../../../components/Skeleton";
+
+const SpotlightCard = ({ children, style, ...props }) => {
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
+
+  const handleMouseMove = (e) => {
+    if (!e.currentTarget) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = (e) => {
+    setOpacity(1);
+    if (props.onMouseEnter) props.onMouseEnter(e);
+  };
+
+  const handleMouseLeave = (e) => {
+    setOpacity(0);
+    if (props.onMouseLeave) props.onMouseLeave(e);
+  };
+
+  return (
+    <div
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        ...style,
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+      {...props}
+    >
+      <div
+        style={{
+          pointerEvents: 'none',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          opacity,
+          transition: 'opacity 0.3s',
+          background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(16, 185, 129, 0.1), transparent 40%)`,
+          zIndex: 10,
+        }}
+      />
+      {children}
+    </div>
+  );
+};
+
+const libraries = ['places', 'geometry'];
 
 function NearYou() {
+  const navigate = useNavigate();
   const { user } = useUserStore.getState();
   const [city, setCity] = useState("");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const { isLoaded } = useJsApiLoader({
+      id: 'google-map-script',
+      googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+      libraries
+  });
 
   const formatTimeAgo = (iso) => {
     if (!iso) return "";
@@ -25,12 +88,37 @@ function NearYou() {
     if (fromProfile) {
       resolved = String(fromProfile).split(",")[0].trim();
     }
-    if (!resolved && typeof navigator !== "undefined" && navigator.geolocation) {
+    
+    if (!resolved && typeof navigator !== "undefined" && navigator.geolocation && isLoaded) {
       navigator.geolocation.getCurrentPosition(
         async (pos) => {
           try {
             const { latitude, longitude } = pos.coords;
-            const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+            
+            // --- GOOGLE MAPS REVERSE GEOCODING ---
+            const geocoder = new window.google.maps.Geocoder();
+            const res = await geocoder.geocode({ location: { lat: latitude, lng: longitude } });
+            
+            if (res.results && res.results.length > 0) {
+                 const result = res.results[0];
+                 // Extract city from address components
+                 let cityName = "Chamoli";
+                 for (let comp of result.address_components) {
+                     if (comp.types.includes("locality")) {
+                         cityName = comp.long_name;
+                         break;
+                     } else if (comp.types.includes("administrative_area_level_2")) {
+                         cityName = comp.long_name;
+                     }
+                 }
+                 setCity(cityName);
+                 return;
+            }
+
+            // --- BACKUP: PHOTON (COMMENTED) ---
+            /*
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const photonBase = `${API_BASE}/api/geo/photon`;
             const r = await fetch(`${photonBase}/reverse?lat=${latitude}&lon=${longitude}`, { headers: { Accept: 'application/json' } });
             if (r.ok) {
               const d = await r.json();
@@ -41,6 +129,7 @@ function NearYou() {
               setCity(cityName);
               return;
             }
+            */
           } catch (e) {
             console.warn("Reverse geocoding failed", e);
           }
@@ -57,7 +146,7 @@ function NearYou() {
     } else {
       setCity(resolved || "Chamoli");
     }
-  }, [user]);
+  }, [user, isLoaded]);
 
   useEffect(() => {
     if (!city) return;
@@ -95,6 +184,8 @@ function NearYou() {
         : "Job";
 
       return {
+        id: entity._id,
+        kind: type,
         image: img,
         distance: "•",
         title,
@@ -301,53 +392,80 @@ function NearYou() {
       
       <div style={containerStyle}>
         {loading ? (
-           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 0", color: "#64748B" }}>
-             <p style={{ fontSize: "18px", fontWeight: "500" }}>Loading nearby items...</p>
-           </div>
+          Array(4).fill(0).map((_, i) => (
+             <div key={i} style={{ ...cardStyle, cursor: 'default', boxShadow: 'none' }}>
+               <div style={{ ...imageBox, backgroundColor: '#f1f5f9' }}>
+                 <Skeleton width="100%" height="100%" style={{ position: 'absolute', top: 0 }} />
+               </div>
+               <div style={contentStyle}>
+                 <Skeleton width="40%" height="24px" style={{ marginBottom: '8px' }} />
+                 <Skeleton width="80%" height="20px" style={{ marginBottom: '12px' }} />
+                 <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                   <Skeleton width="30%" height="16px" />
+                   <Skeleton width="30%" height="16px" />
+                 </div>
+                 <div style={{ marginTop: 'auto', display: 'flex', justifyContent: 'space-between', paddingTop: '12px', borderTop: '1px solid #F1F5F9' }}>
+                   <Skeleton width="60px" height="20px" />
+                   <Skeleton width="40px" height="20px" />
+                 </div>
+               </div>
+             </div>
+          ))
         ) : cards.length > 0 ? (
           cards.map((item, index) => (
-            <div
-            key={index}
-            style={cardStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "translateY(-6px)";
-              e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.12)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "translateY(0)";
-              e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
-            }}
-          >
-            <div style={imageBox}>
-              <img src={item.image} alt={item.title} style={imageStyle} />
-              <div style={distanceStyle}>
-                <i className="fa-solid fa-location-arrow" /> {item.distance}
-              </div>
-              <i className="fa-regular fa-heart" style={heartStyle}></i>
-            </div>
-
-            <div style={contentStyle}>
-              <div style={priceStyle}>
-                {item.price}
-                {item.oldPrice && <span style={oldPriceStyle}>{item.oldPrice}</span>}
-              </div>
-              <div style={titleStyle}>{item.title}</div>
-
-              <div style={locTimeStyle}>
-                <i className="fa-solid fa-location-dot" style={{ color: "#94A3B8" }}></i> 
-                <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "120px" }}>{item.location}</span>
-                <span style={{ margin: "0 4px" }}>•</span>
-                <span>{item.time}</span>
+            <SpotlightCard
+              key={index}
+              style={cardStyle}
+              onClick={() => {
+                if (item.id) {
+                  if (item.kind === 'product') navigate(`/product/${item.id}`);
+                  else if (item.kind === 'room') navigate(`/rooms/${item.id}`);
+                  else if (item.kind === 'service') navigate(`/services/${item.id}`);
+                  else if (item.kind === 'job') navigate(`/jobs/${item.id}`);
+                } else {
+                  if (item.kind === 'product') navigate('/browse?tab=Products');
+                  else if (item.kind === 'room') navigate('/browse?tab=Rooms');
+                  else if (item.kind === 'service') navigate('/browse?tab=Services');
+                  else if (item.kind === 'job') navigate('/browse?tab=Jobs');
+                  else navigate('/browse');
+                }
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-6px)";
+                e.currentTarget.style.boxShadow = "0 12px 24px rgba(0,0,0,0.12)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
+              }}
+            >
+              <div style={imageBox}>
+                <img src={item.image} alt={item.title} style={imageStyle} />
+                <i className="fa-regular fa-heart" style={heartStyle}></i>
               </div>
 
-              <div style={bottomRow}>
-                <span style={tagBox}>{item.tag}</span>
-                <div style={ratingStyle}>
-                  <i className="fa-solid fa-star"></i> {item.rating}
+              <div style={contentStyle}>
+                <div style={priceStyle}>
+                  {item.price}
+                  {item.oldPrice && <span style={oldPriceStyle}>{item.oldPrice}</span>}
+                </div>
+                <div style={titleStyle}>{item.title}</div>
+
+                <div style={locTimeStyle}>
+                  <i className="fa-solid fa-location-dot" style={{ color: "#94A3B8" }}></i> 
+                  <span style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "120px" }}>{item.location}</span>
+                  <span style={{ margin: "0 4px" }}>•</span>
+                  <span>{item.time}</span>
+                </div>
+
+                <div style={bottomRow}>
+                  <span style={tagBox}>{item.tag}</span>
+                  <div style={ratingStyle}>
+                    <i className="fa-solid fa-star"></i> {item.rating}
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            </SpotlightCard>
           ))
         ) : (
           <div style={{ gridColumn: "1 / -1", textAlign: "center", padding: "60px 20px", backgroundColor: "#fff", borderRadius: "16px", border: "1px dashed #E2E8F0" }}>

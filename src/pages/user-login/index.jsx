@@ -1,6 +1,8 @@
+import React from "react";
 import { useUserStore } from "../../store/userStore";
 import { useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, MapPin } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, MapPin, LogIn, MessageSquare, ShieldCheck, Rocket } from "lucide-react";
+import { GoogleLogin } from '@react-oauth/google';
 
 function Index() {
   const styles = {
@@ -10,35 +12,46 @@ function Index() {
       justifyContent: "center",
       alignItems: "center",
       minHeight: "100vh",
-      backgroundColor: "#f9fafb",
+      background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
       fontFamily: "Arial, sans-serif",
-      padding: "20px",
+      padding: "24px",
       width: "100vw",
     },
     mainBox: {
-      display: "flex",
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
       backgroundColor: "#fff",
-      borderRadius: "12px",
-      boxShadow: "0 0 20px rgba(0,0,0,0.1)",
-      width: "1000px",
+      borderRadius: "16px",
+      boxShadow: "0 10px 30px rgba(2, 6, 23, 0.1)",
+      width: "1040px",
       overflow: "hidden",
     },
     leftSection: {
-      flex: 1,
-      padding: "50px",
-      backgroundColor: "#f9fafb",
+      padding: "48px",
+      backgroundColor: "#f8fafc",
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
+      gap: "18px",
     },
+    featureIcon: (bg) => ({
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      background: bg,
+      color: "#fff",
+      marginRight: 12,
+    }),
     rightSection: {
-      flex: 1,
-      padding: "50px",
+      padding: "48px",
       display: "flex",
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
-      borderLeft: "1px solid #eee",
+      borderLeft: "1px solid #e5e7eb",
     },
     title: {
       fontSize: "28px",
@@ -63,7 +76,7 @@ function Index() {
     },
     formBox: {
       width: "100%",
-      maxWidth: "350px",
+      maxWidth: "380px",
       textAlign: "center",
     },
     signInTitle: {
@@ -109,10 +122,11 @@ function Index() {
       fontWeight: "bold",
     },
     input: {
-      padding: "10px",
-      borderRadius: "8px",
-      border: "1px solid #d1d5db",
+      padding: "12px",
+      borderRadius: "10px",
+      border: "1px solid #cbd5e1",
       fontSize: "14px",
+      backgroundColor: "#ffffff",
     },
     rememberRow: {
       display: "flex",
@@ -127,12 +141,16 @@ function Index() {
       backgroundColor: "#2563eb",
       color: "#fff",
       border: "none",
-      padding: "10px",
-      borderRadius: "8px",
+      padding: "12px",
+      borderRadius: "10px",
       width: "100%",
       fontSize: "16px",
       cursor: "pointer",
-      fontWeight: "bold",
+      fontWeight: "600",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
     },
     signUpText: {
       marginTop: "20px",
@@ -143,6 +161,7 @@ function Index() {
   };
 
   const login = useUserStore((state) => state.login);
+  const googleLogin = useUserStore((state) => state.googleLogin);
   const loading = useUserStore((state) => state.loading);
   const storeError = useUserStore((state) => state.error);
   const clearError = useUserStore((state) => state.clearError);
@@ -192,7 +211,8 @@ function Index() {
     try {
       const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { enableHighAccuracy: true, timeout: 8000 }));
       const { latitude, longitude } = pos.coords;
-      const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+      const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const photonBase = `${API_BASE}/api/geo/photon`;
       let city = "";
       try {
         const r = await fetch(`${photonBase}/reverse?lat=${latitude}&lon=${longitude}`, { headers: { Accept: 'application/json' } });
@@ -213,6 +233,19 @@ function Index() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    const result = await googleLogin(credentialResponse.credential);
+    if (result.success) {
+      navigate("/homepage");
+    } else {
+      setError(result.error || "Google Login failed");
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError("Google Login Failed");
+  };
+
   return (
     <div style={styles.container}>
       <div style={styles.mainBox}>
@@ -225,9 +258,9 @@ function Index() {
           </p>
 
           <div style={styles.feature}>
-            <span style={styles.icon}>💬</span>
+            <span style={styles.featureIcon('#6366f1')}><MessageSquare size={18} /></span>
             <div>
-              <b>Chat with buyers</b>
+              <b>Chat with Buyers</b>
               <div style={{ color: "#64748b", fontSize: "13px" }}>
                 Direct messaging system
               </div>
@@ -235,9 +268,9 @@ function Index() {
           </div>
 
           <div style={styles.feature}>
-            <span style={styles.icon}>🔒</span>
+            <span style={styles.featureIcon('#10b981')}><ShieldCheck size={18} /></span>
             <div>
-              <b>Secure transactions</b>
+              <b>Secure Transactions</b>
               <div style={{ color: "#64748b", fontSize: "13px" }}>
                 Protected by advanced security
               </div>
@@ -245,9 +278,9 @@ function Index() {
           </div>
 
           <div style={styles.feature}>
-            <span style={styles.icon}>🚀</span>
+            <span style={styles.featureIcon('#f59e0b')}><Rocket size={18} /></span>
             <div>
-              <b>Boost your listings</b>
+              <b>Boost Your Listings</b>
               <div style={{ color: "#64748b", fontSize: "13px" }}>
                 Reach more potential buyers
               </div>
@@ -258,8 +291,18 @@ function Index() {
         {/* Right Side */}
         <div style={styles.rightSection}>
           <div style={styles.formBox}>
-            <h2 style={styles.signInTitle}>Sign In</h2>
-            <p style={styles.signInSubtitle}>Enter your credentials</p>
+            <h2 style={styles.signInTitle}>Welcome Back</h2>
+            <p style={styles.signInSubtitle}>Sign in to continue</p>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+              <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+              <span style={{ padding: '0 10px', color: '#94a3b8', fontSize: '13px' }}>OR</span>
+              <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+            </div>
 
             <form onSubmit={handleLogin}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 12, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -285,7 +328,7 @@ function Index() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                   />
-                  <Mail style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", width: "18px", height: "18px" }} />
+                  <Mail style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", width: 18, height: 18 }} />
                 </div>
               </div>
 
@@ -301,7 +344,7 @@ function Index() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
-                  <Lock style={{ position: "absolute", left: "10px", top: "50%", transform: "translateY(-50%)", color: "#9ca3af", width: "18px", height: "18px" }} />
+                  <Lock style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#9ca3af", width: 18, height: 18 }} />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
@@ -329,7 +372,7 @@ function Index() {
               ) : null}
 
               <button style={{ ...styles.signInButton, opacity: loading ? 0.7 : 1 }} disabled={loading}>
-                {loading ? "Signing In..." : "Sign In"}
+                <LogIn size={18} /> {loading ? "Signing In..." : "Sign In"}
               </button>
             </form>
 

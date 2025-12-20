@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "../../lib/axios";
+import Skeleton from "../../components/Skeleton.jsx";
 import { useUserStore } from "../../store/userStore";
 import toast from "react-hot-toast";
+import Navbar from "../../components/navbar.jsx";
 
 export default function JobDetails() {
     const { id } = useParams();
@@ -14,6 +16,13 @@ export default function JobDetails() {
     const [error, setError] = useState("");
     const [reportReason, setReportReason] = useState("");
     const [reportMessage, setReportMessage] = useState("");
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
 
     useEffect(() => {
         async function fetchJob() {
@@ -30,21 +39,218 @@ export default function JobDetails() {
         fetchJob();
     }, [id]);
 
-    if (loading) return <div style={styles.center}>Loading job details...</div>;
-    if (error || !job) return <div style={styles.center}>{error || "Job not found"}</div>;
+    const styles = {
+        page: {
+            maxWidth: "1100px",
+            margin: "0 auto",
+            padding: isMobile ? "20px 15px" : "40px 20px",
+            fontFamily: "'Inter', sans-serif",
+            backgroundColor: "#f8fafc",
+            minHeight: "100vh",
+        },
+        center: {
+            textAlign: "center",
+            padding: "80px",
+            fontSize: "18px",
+            color: "#64748b",
+        },
+        headerCard: {
+            display: "flex",
+            flexDirection: isMobile ? "column" : "row",
+            gap: "30px",
+            alignItems: isMobile ? "flex-start" : "center",
+            backgroundColor: "#fff",
+            padding: isMobile ? "25px" : "40px",
+            borderRadius: "24px",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.06)",
+            marginBottom: "35px",
+            border: "1px solid #f1f5f9",
+        },
+        logoWrapper: {
+            width: isMobile ? "80px" : "120px",
+            height: isMobile ? "80px" : "120px",
+            borderRadius: "24px",
+            backgroundColor: "#f0f9ff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 8px 20px rgba(0,0,0,0.06)",
+            border: "1px solid #e2e8f0",
+        },
+        companyLogo: {
+            width: isMobile ? "50px" : "80px",
+            height: isMobile ? "50px" : "80px",
+            objectFit: "contain",
+        },
+        title: {
+            margin: 0,
+            fontSize: isMobile ? "24px" : "36px",
+            fontWeight: 800,
+            color: "#0f172a",
+            lineHeight: 1.2,
+        },
+        companyName: {
+            color: "#475569",
+            fontSize: "18px",
+            margin: "8px 0",
+            fontWeight: 500,
+        },
+        location: {
+            color: "#64748b",
+            marginBottom: "16px",
+            fontSize: "15px",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+        },
+        salaryBox: {
+            display: "inline-block",
+            padding: "8px 20px",
+            borderRadius: "50px",
+            background: "linear-gradient(135deg, #0ea5e9, #0284c7)",
+            color: "#fff",
+            fontWeight: 600,
+            fontSize: "16px",
+            boxShadow: "0 4px 12px rgba(14, 165, 233, 0.2)",
+        },
+        section: {
+            backgroundColor: "#fff",
+            padding: isMobile ? "25px" : "35px",
+            borderRadius: "24px",
+            marginBottom: "30px",
+            boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+            border: "1px solid #f1f5f9",
+        },
+        sectionTitle: {
+            fontSize: "22px",
+            fontWeight: 700,
+            color: "#0f172a",
+            marginBottom: "20px",
+            paddingBottom: "12px",
+            borderBottom: "2px solid #f1f5f9",
+        },
+        text: {
+            fontSize: "16px",
+            color: "#334155",
+            lineHeight: 1.8,
+            whiteSpace: "pre-line",
+        },
+        detailGrid: {
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+            gap: "20px",
+        },
+        detailItem: {
+            backgroundColor: "#f8fafc",
+            padding: "20px",
+            borderRadius: "16px",
+            fontSize: "15px",
+            fontWeight: 500,
+            color: "#334155",
+            border: "1px solid #e2e8f0",
+            transition: "transform 0.2s",
+        },
+        skillBox: {
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "12px",
+        },
+        skillTag: {
+            background: "#f1f5f9",
+            color: "#334155",
+            fontWeight: 600,
+            fontSize: "14px",
+            padding: "10px 18px",
+            borderRadius: "100px",
+            border: "1px solid #e2e8f0",
+            transition: "all 0.2s",
+        },
+        contactCard: {
+            backgroundColor: "#fff",
+            padding: "40px",
+            borderRadius: "24px",
+            textAlign: "center",
+            boxShadow: "0 15px 40px rgba(0,0,0,0.06)",
+            marginBottom: "40px",
+            border: "1px solid #f1f5f9",
+        },
+        applyBtn: {
+            marginTop: "25px",
+            padding: "18px 40px",
+            fontSize: "18px",
+            fontWeight: 700,
+            borderRadius: "50px",
+            border: "none",
+            background: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+            color: "#fff",
+            cursor: "pointer",
+            transition: "all 0.3s ease",
+            boxShadow: "0 10px 25px rgba(37, 99, 235, 0.3)",
+            width: isMobile ? "100%" : "auto",
+        },
+        reportCard: {
+            backgroundColor: "#fff", 
+            padding: "30px", 
+            borderRadius: "24px", 
+            boxShadow: "0 10px 30px rgba(0,0,0,0.04)",
+            border: "1px solid #f1f5f9"
+        }
+    };
 
-    const location =
-        typeof job.location === "string" ? job.location : "Location not specified";
+    if (loading) return (
+        <>
+        <Navbar />
+        <div style={styles.page}>
+            <div style={styles.headerCard}>
+                <Skeleton width={isMobile ? "80px" : "120px"} height={isMobile ? "80px" : "120px"} borderRadius="24px" />
+                <div style={{ flex: 1, width: "100%" }}>
+                    <Skeleton width="60%" height="40px" style={{ marginBottom: 15 }} />
+                    <Skeleton width="40%" height="25px" style={{ marginBottom: 15 }} />
+                    <Skeleton width="30%" height="20px" style={{ marginBottom: 20 }} />
+                    <Skeleton width="140px" height="45px" borderRadius="50px" />
+                </div>
+            </div>
+            
+            {/* Description Skeleton */}
+            <div style={styles.section}>
+                <Skeleton width="30%" height="30px" style={{ marginBottom: 25 }} />
+                <Skeleton width="100%" height="20px" style={{ marginBottom: 12 }} />
+                <Skeleton width="100%" height="20px" style={{ marginBottom: 12 }} />
+                <Skeleton width="90%" height="20px" style={{ marginBottom: 12 }} />
+                <Skeleton width="80%" height="20px" />
+            </div>
+
+            {/* Key Details Skeleton */}
+            <div style={styles.section}>
+                <Skeleton width="200px" height="30px" style={{ marginBottom: 25 }} />
+                <div style={styles.detailGrid}>
+                    <Skeleton width="100%" height="80px" style={{ borderRadius: "16px" }} />
+                    <Skeleton width="100%" height="80px" style={{ borderRadius: "16px" }} />
+                    <Skeleton width="100%" height="80px" style={{ borderRadius: "16px" }} />
+                    <Skeleton width="100%" height="80px" style={{ borderRadius: "16px" }} />
+                </div>
+            </div>
+        </div>
+        </>
+    );
+
+    if (error || !job) return (
+        <>
+            <Navbar />
+            <div style={styles.center}>{error || "Job not found"}</div>
+        </>
+    );
+
+    const location = typeof job.location === "string" ? job.location : "Location not specified";
 
     const handleApply = async () => {
         if (!isAuthenticated) {
             toast.error("Please login to apply");
-            navigate("/login");
+            navigate("/user-login");
             return;
         }
         
         const employerId = job.postedBy?._id || job.postedBy;
-        console.log("Apply Now - Employer ID:", employerId, "Job Posted By:", job.postedBy);
         
         if (!employerId) {
             toast.error("Employer info missing - cannot apply");
@@ -66,9 +272,8 @@ export default function JobDetails() {
             });
             
             if (success && conversationId) {
-                // Send initial application message
                 await useUserStore.getState().sendMessage(conversationId, `Hi, I'm interested in applying for the "${job.title}" position.`);
-                navigate("/messages");
+                navigate("/user-messages");
             } else {
                 toast.error(error || "Failed to start application");
             }
@@ -81,7 +286,9 @@ export default function JobDetails() {
     };
 
     return (
-        <div style={styles.page}>
+        <>
+        <Navbar />
+        <div style={styles.page} className="fade-in">
             {/* HEADER */}
             <div style={styles.headerCard}>
                 <div style={styles.logoWrapper}>
@@ -95,7 +302,7 @@ export default function JobDetails() {
                 <div style={{ flex: 1 }}>
                     <h1 style={styles.title}>{job.title}</h1>
                     <p style={styles.companyName}>{job.companyName}</p>
-                    <p style={styles.location}>{location}</p>
+                    <p style={styles.location}>📍 {location}</p>
 
                     <div style={styles.salaryBox}>
                         💸 {job.salary || "Not disclosed"}
@@ -113,10 +320,26 @@ export default function JobDetails() {
             <div style={styles.section}>
                 <h2 style={styles.sectionTitle}>Key Details</h2>
                 <div style={styles.detailGrid}>
-                    <div style={styles.detailItem}>📌 <b>Type:</b> {job.jobType || "N/A"}</div>
-                    <div style={styles.detailItem}>🕒 <b>Duration:</b> {job.duration || "N/A"}</div>
-                    <div style={styles.detailItem}>👥 <b>Applicants:</b> {job.applicantsCount || 0}</div>
-                    <div style={styles.detailItem}>🗓 <b>Posted:</b> {job.createdAt ? new Date(job.createdAt).toLocaleDateString("en-IN") : "N/A"}</div>
+                    <div style={styles.detailItem}>
+                        <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>JOB TYPE</div>
+                        <div style={{fontSize: '16px', fontWeight: '600'}}>{job.jobType || "N/A"}</div>
+                    </div>
+                    <div style={styles.detailItem}>
+                        <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>DURATION</div>
+                        <div style={{fontSize: '16px', fontWeight: '600'}}>{job.duration || "N/A"}</div>
+                    </div>
+                    <div style={styles.detailItem}>
+                        <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>APPLICANTS</div>
+                        <div style={{fontSize: '16px', fontWeight: '600'}}>{job.applicantsCount || 0} People</div>
+                    </div>
+                    <div style={styles.detailItem}>
+                        <div style={{fontSize: '13px', color: '#64748b', marginBottom: '4px'}}>POSTED ON</div>
+                        <div style={{fontSize: '16px', fontWeight: '600'}}>
+                            {job.createdAt ? new Date(job.createdAt).toLocaleDateString("en-IN", {
+                                day: 'numeric', month: 'short', year: 'numeric'
+                            }) : "N/A"}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -134,22 +357,35 @@ export default function JobDetails() {
 
             {/* CONTACT */}
             <div style={styles.contactCard}>
-                <h2 style={styles.sectionTitle}>Contact</h2>
-                <p style={styles.text}>📞 {job.postedBy?.email || "Not available"}</p>
+                <h2 style={{...styles.sectionTitle, textAlign: 'center', borderBottom: 'none', marginBottom: '10px'}}>Interested?</h2>
+                <p style={{...styles.text, textAlign: 'center'}}>
+                    Connect with the employer to discuss this opportunity further.
+                </p>
                 <button 
                     style={{...styles.applyBtn, opacity: applyLoading ? 0.7 : 1, cursor: applyLoading ? 'not-allowed' : 'pointer'}} 
                     onClick={handleApply}
                     disabled={applyLoading}
                 >
-                    {applyLoading ? "Applying..." : "Apply Now"}
+                    {applyLoading ? "Starting Application..." : "Apply Now"}
                 </button>
             </div>
-            <div style={{ backgroundColor: "#fff", padding: 16, borderRadius: 12, boxShadow: "0 12px 30px rgba(0,0,0,0.08)" }}>
-                <div style={{ fontWeight: 600, marginBottom: 8 }}>Report Job</div>
+
+            {/* REPORT */}
+            <div style={styles.reportCard}>
+                <div style={{ fontWeight: 700, fontSize: "18px", marginBottom: "16px", color: "#ef4444" }}>Report Job</div>
                 <select
                     value={reportReason}
                     onChange={(e) => setReportReason(e.target.value)}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, fontSize: 14 }}
+                    style={{ 
+                        width: "100%", 
+                        padding: "12px 16px", 
+                        borderRadius: "12px", 
+                        border: "1px solid #cbd5e1", 
+                        marginBottom: "12px", 
+                        fontSize: "15px",
+                        backgroundColor: "#f8fafc",
+                        outline: "none"
+                    }}
                 >
                     <option value="">Select a reason</option>
                     <option value="spam">Spam or misleading</option>
@@ -159,10 +395,21 @@ export default function JobDetails() {
                     <option value="illegal">Illegal job</option>
                 </select>
                 <textarea
-                    placeholder="Optional details"
+                    placeholder="Provide more details about your report..."
                     value={reportMessage}
                     onChange={(e) => setReportMessage(e.target.value)}
-                    style={{ width: "100%", padding: "10px 12px", borderRadius: 10, border: "1px solid #e2e8f0", marginBottom: 10, fontSize: 14, minHeight: 80 }}
+                    style={{ 
+                        width: "100%", 
+                        padding: "12px 16px", 
+                        borderRadius: "12px", 
+                        border: "1px solid #cbd5e1", 
+                        marginBottom: "16px", 
+                        fontSize: "15px", 
+                        minHeight: "100px",
+                        backgroundColor: "#f8fafc",
+                        outline: "none",
+                        fontFamily: "inherit"
+                    }}
                 />
                 <button
                     onClick={async () => {
@@ -174,155 +421,29 @@ export default function JobDetails() {
                                 `/api/reports/job/${job._id}`,
                                 { reason: reportReason, message: reportMessage }
                             );
-                            toast.success("Report submitted");
+                            toast.success("Report submitted successfully");
                             setReportReason("");
                             setReportMessage("");
                         } catch (e) {
                             toast.error(e.response?.data?.message || "Failed to submit report");
                         }
                     }}
-                    style={{ padding: "10px 14px", borderRadius: 8, backgroundColor: "#ef4444", color: "#fff", border: "none", fontWeight: 600, cursor: "pointer" }}
+                    style={{ 
+                        padding: "12px 24px", 
+                        borderRadius: "12px", 
+                        backgroundColor: "#ef4444", 
+                        color: "#fff", 
+                        border: "none", 
+                        fontWeight: 600, 
+                        cursor: "pointer",
+                        fontSize: "15px",
+                        transition: "background 0.2s"
+                    }}
                 >
-                    Report
+                    Submit Report
                 </button>
             </div>
         </div>
+        </>
     );
 }
-
-const styles = {
-    page: {
-        maxWidth: "900px",
-        margin: "0 auto",
-        padding: "30px 20px",
-        backgroundColor: "#f1f5f9",
-        minHeight: "100vh",
-        fontFamily: "'Inter', sans-serif",
-    },
-    center: {
-        textAlign: "center",
-        padding: "80px",
-        fontSize: "18px",
-        color: "#64748b",
-    },
-    headerCard: {
-        display: "flex",
-        gap: "25px",
-        alignItems: "center",
-        backgroundColor: "#fff",
-        padding: "30px",
-        borderRadius: "20px",
-        boxShadow: "0 15px 35px rgba(0,0,0,0.08)",
-        marginBottom: "35px",
-        transition: "all 0.3s ease",
-    },
-    logoWrapper: {
-        width: "110px",
-        height: "110px",
-        borderRadius: "50%",
-        backgroundColor: "#f0f9ff",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        boxShadow: "0 8px 25px rgba(0,0,0,0.1)",
-    },
-    companyLogo: {
-        width: "80px",
-        height: "80px",
-        borderRadius: "50%",
-        objectFit: "cover",
-    },
-    title: {
-        margin: 0,
-        fontSize: "30px",
-        fontWeight: 700,
-        color: "#0f172a",
-    },
-    companyName: {
-        color: "#475569",
-        fontSize: "18px",
-        margin: "8px 0",
-    },
-    location: {
-        color: "#64748b",
-        marginBottom: "12px",
-        fontSize: "14px",
-    },
-    salaryBox: {
-        display: "inline-block",
-        padding: "10px 18px",
-        borderRadius: "50px",
-        background: "linear-gradient(90deg, #38bdf8, #0ea5e9)",
-        color: "#fff",
-        fontWeight: 600,
-        fontSize: "16px",
-        boxShadow: "0 5px 15px rgba(0,0,0,0.15)",
-    },
-    section: {
-        backgroundColor: "#fff",
-        padding: "25px",
-        borderRadius: "20px",
-        marginBottom: "25px",
-        boxShadow: "0 10px 25px rgba(0,0,0,0.08)",
-    },
-    sectionTitle: {
-        fontSize: "22px",
-        fontWeight: 700,
-        color: "#0f172a",
-        marginBottom: "16px",
-    },
-    text: {
-        fontSize: "15px",
-        color: "#475569",
-        lineHeight: 1.8,
-    },
-    detailGrid: {
-        display: "grid",
-        gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-        gap: "16px",
-    },
-    detailItem: {
-        backgroundColor: "#f0f9ff",
-        padding: "12px 15px",
-        borderRadius: "15px",
-        fontSize: "14px",
-        fontWeight: 500,
-        color: "#0f172a",
-        boxShadow: "0 5px 15px rgba(0,0,0,0.05)",
-    },
-    skillBox: {
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "10px",
-    },
-    skillTag: {
-        background: "linear-gradient(135deg, #3b82f6, #2563eb)",
-        color: "#fff",
-        fontWeight: 500,
-        fontSize: "13px",
-        padding: "6px 14px",
-        borderRadius: "12px",
-        boxShadow: "0 3px 8px rgba(0,0,0,0.1)",
-        transition: "transform 0.2s",
-    },
-    contactCard: {
-        backgroundColor: "#fff",
-        padding: "30px",
-        borderRadius: "20px",
-        textAlign: "center",
-        boxShadow: "0 12px 30px rgba(0,0,0,0.08)",
-        marginBottom: "40px",
-    },
-    applyBtn: {
-        marginTop: "20px",
-        padding: "16px 30px",
-        fontSize: "18px",
-        fontWeight: 700,
-        borderRadius: "50px",
-        border: "none",
-        background: "linear-gradient(90deg, #38bdf8, #0ea5e9)",
-        color: "#fff",
-        cursor: "pointer",
-        transition: "all 0.3s ease",
-    },
-};

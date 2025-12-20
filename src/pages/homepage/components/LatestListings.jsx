@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "../../../lib/axios";
+import Skeleton from "../../../components/Skeleton";
 
 function LatestListings() {
+  const navigate = useNavigate();
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
   const isDesktop = width >= 1024;
   const isTablet = width >= 640 && width < 1024;
@@ -213,16 +216,10 @@ function LatestListings() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [loadingRooms, setLoadingRooms] = useState(true);
 
-  // Skeleton Styles
   const skeletonStyles = {
     card: {
       ...styles.card,
       pointerEvents: "none",
-    },
-    image: {
-      ...styles.imageBox,
-      backgroundColor: "#e2e8f0",
-      animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
     },
     content: {
       padding: "16px",
@@ -230,50 +227,7 @@ function LatestListings() {
       flexDirection: "column",
       gap: "12px",
     },
-    line: (width, height = "16px") => ({
-      width,
-      height,
-      backgroundColor: "#e2e8f0",
-      borderRadius: "4px",
-      animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-    }),
-    circle: {
-      width: "24px",
-      height: "24px",
-      borderRadius: "50%",
-      backgroundColor: "#e2e8f0",
-      animation: "pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-    }
   };
-
-  const SkeletonCard = () => (
-    <div style={skeletonStyles.card}>
-      <style>
-        {`
-          @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
-          }
-        `}
-      </style>
-      <div style={skeletonStyles.image}></div>
-      <div style={skeletonStyles.content}>
-        <div style={skeletonStyles.line("40%", "24px")}></div>
-        <div style={skeletonStyles.line("90%", "20px")}></div>
-        <div style={skeletonStyles.line("60%", "20px")}></div>
-        <div style={{ display: "flex", gap: "8px", marginTop: "auto" }}>
-          <div style={skeletonStyles.line("30%", "20px")}></div>
-          <div style={skeletonStyles.line("30%", "20px")}></div>
-        </div>
-        <div style={{ ...styles.footer, marginTop: "12px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <div style={skeletonStyles.circle}></div>
-            <div style={skeletonStyles.line("80px", "14px")}></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 
   const fallbackCards = [
     { image: "https://images.unsplash.com/photo-1599202860130-f600f4948364?auto=format&fit=crop&q=60&w=600", title: "iPhone 15 Pro Max – Excellent Condition", price: "₹1,18,999", oldPrice: "₹1,29,999", location: "Gopeshwar, Chamoli", tags: [{ text: "Electronics", bg: "#E0F2FE", color: "#0369A1" }, { text: "Like New", bg: "#DCFCE7", color: "#15803D" }], user: { name: "Aman Rawat", color: "#2563EB", rating: 4.9 } },
@@ -306,6 +260,7 @@ function LatestListings() {
           : (rawRating ?? "New");
 
       return {
+        id: entity._id,
         image,
         title,
         price,
@@ -367,6 +322,7 @@ function LatestListings() {
           ? (ratingRaw?.average ?? "New")
           : (ratingRaw ?? "New");
       return {
+        id: entity._id,
         image,
         title,
         price,
@@ -405,7 +361,7 @@ function LatestListings() {
     runRooms();
   }, []);
 
-  const ListingSection = ({ title, subtitle, link, linkText, data, loading }) => (
+  const ListingSection = ({ title, subtitle, link, linkText, data, loading, onNavigate, fallbackLink }) => (
     <div style={{ marginBottom: "60px" }}>
       <div style={styles.header}>
         <div>
@@ -429,11 +385,40 @@ function LatestListings() {
       </div>
       <div style={styles.grid}>
         {loading 
-          ? Array(4).fill(0).map((_, i) => <SkeletonCard key={i} />)
+          ? Array(4).fill(0).map((_, i) => (
+              <div key={i} style={styles.card}>
+                <Skeleton width="100%" height="200px" />
+                <div style={styles.content}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <Skeleton width="40%" height="24px" />
+                    <Skeleton width="30%" height="16px" />
+                  </div>
+                  <Skeleton width="90%" height="20px" style={{marginBottom: 8}} />
+                  <Skeleton width="60%" height="20px" style={{marginBottom: 16}} />
+                  <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>
+                     <Skeleton width="30%" height="20px" />
+                     <Skeleton width="30%" height="20px" />
+                  </div>
+                  <div style={{ ...styles.footer, marginTop: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <Skeleton width="24px" height="24px" borderRadius="50%" />
+                      <Skeleton width="80px" height="14px" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+          ))
           : data.map((item, index) => (
           <div
             key={index}
             style={styles.card}
+            onClick={() => {
+              if (item.id && typeof onNavigate === 'function') {
+                onNavigate(item);
+              } else if (!item.id && fallbackLink) {
+                navigate(fallbackLink);
+              }
+            }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = "translateY(-8px)";
               e.currentTarget.style.boxShadow = "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)";
@@ -502,6 +487,8 @@ function LatestListings() {
         linkText="View all listings" 
         data={items}
         loading={loadingProducts}
+        onNavigate={(item) => navigate(`/product/${item.id}`)}
+        fallbackLink="/browse?tab=Products"
       />
       
       <ListingSection 
@@ -511,6 +498,8 @@ function LatestListings() {
         linkText="Browse all spaces" 
         data={rooms}
         loading={loadingRooms}
+        onNavigate={(item) => navigate(`/rooms/${item.id}`)}
+        fallbackLink="/browse?tab=Rooms"
       />
     </div>
   );

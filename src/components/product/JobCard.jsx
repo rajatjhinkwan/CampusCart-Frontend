@@ -1,15 +1,36 @@
-import React from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Clock, Building } from "lucide-react";
 
 export default function JobCard({ job }) {
   const navigate = useNavigate();
+  const cardRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
 
   if (!job) return null;
 
   const handleNavigate = () => {
     const id = job.id || job._id;
     navigate(`/jobs/${id}`);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = (e) => {
+    setOpacity(1);
+    e.currentTarget.style.transform = "translateY(-2px)";
+    e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
+  };
+
+  const handleMouseLeave = (e) => {
+    setOpacity(0);
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
   };
 
   const styles = {
@@ -19,9 +40,23 @@ export default function JobCard({ job }) {
       borderRadius: "12px",
       padding: "20px",
       cursor: "pointer",
-      transition: "0.2s ease",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
       boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
       marginBottom: "16px",
+      position: "relative",
+      overflow: "hidden",
+    },
+    spotlight: {
+      pointerEvents: "none",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: opacity,
+      background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(16, 185, 129, 0.06), transparent 40%)`,
+      zIndex: 10,
+      transition: "opacity 0.2s",
     },
     title: {
       fontSize: "18px",
@@ -67,17 +102,14 @@ export default function JobCard({ job }) {
 
   return (
     <div
+      ref={cardRef}
       style={styles.card}
       onClick={handleNavigate}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-2px)";
-        e.currentTarget.style.boxShadow = "0 4px 8px rgba(0,0,0,0.1)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "0 2px 4px rgba(0,0,0,0.05)";
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      <div style={styles.spotlight} />
       <div style={styles.title}>{job.title}</div>
       <div style={styles.company}>
         <Building size={14} />

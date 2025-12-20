@@ -15,6 +15,7 @@ import {
   Bell
 } from "lucide-react";
 import { useUserStore } from "../store/userStore.js";
+import axios from "../lib/axios";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -23,6 +24,7 @@ const Navbar = () => {
   const [showProfileCard, setShowProfileCard] = useState(false);
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
   const [scrolled, setScrolled] = useState(false);
+  const [notifCount, setNotifCount] = useState(0);
   
   const isMobile = width < 768;
   const profileRef = useRef(null);
@@ -30,6 +32,15 @@ const Navbar = () => {
   const user = useUserStore((state) => state.user);
   const isLoggedIn = useUserStore((state) => state.isAuthenticated);
   const conversations = useUserStore((state) => state.conversations || []);
+  const fetchConversations = useUserStore((state) => state.fetchConversations);
+
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchConversations();
+    }
+  }, [isLoggedIn, fetchConversations]);
+
+  const unreadCount = Array.isArray(conversations) ? conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) : 0;
 
   useEffect(() => {
     const handler = (e) => {
@@ -40,6 +51,21 @@ const Navbar = () => {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
+
+  useEffect(() => {
+    const fetchNotificationsCount = async () => {
+      if (!isLoggedIn) { setNotifCount(0); return; }
+      try {
+        const res = await axios.get('/api/notifications');
+        const list = Array.isArray(res.data) ? res.data : (res.data?.notifications || []);
+        const unread = list.filter(n => !n.read && !n.isRead).length;
+        setNotifCount(unread);
+      } catch {
+        setNotifCount(0);
+      }
+    };
+    fetchNotificationsCount();
+  }, [isLoggedIn]);
 
   useEffect(() => {
     const onResize = () => setWidth(window.innerWidth);
@@ -122,9 +148,8 @@ const Navbar = () => {
       paddingRight: isMobile ? "16px" : "4px",
       backgroundColor: isMobile ? "#ffffff" : "#f3f4f6",
       borderBottom: isMobile ? "1px solid #f3f4f6" : "1px solid #e5e7eb",
-      scrollbarWidth: "none", // Hide scrollbar for Firefox
-      msOverflowStyle: "none",  // Hide scrollbar for IE/Edge
-      "::webkit-scrollbar": { display: "none" }, // Hide scrollbar for Chrome/Safari
+      scrollbarWidth: "none",
+      msOverflowStyle: "none",
     },
     navLink: {
       display: "flex",
@@ -248,7 +273,7 @@ const Navbar = () => {
             }}>
               <Box size={22} strokeWidth={2.5} />
             </div>
-            <h2 style={styles.logoText}>CampusHub</h2>
+            <h2 style={styles.logoText}>Society Connect</h2>
           </div>
 
           {/* Center Navigation (Desktop) */}
@@ -283,6 +308,12 @@ const Navbar = () => {
             >
               Jobs
             </div>
+            <div
+              style={{ ...styles.navLink, ...(isActive("/requests") ? styles.activeLink : {}) }}
+              onClick={() => navigate("/requests")}
+            >
+              Requests
+            </div>
           </div>
 
           {/* Right Actions */}
@@ -315,9 +346,23 @@ const Navbar = () => {
                   onClick={() => navigate("/user-messages")}
                 >
                   <MessageSquare size={20} />
-                  {Array.isArray(conversations) && conversations.length > 0 && (
+                  {unreadCount > 0 && (
                     <span style={styles.badge}>
-                      {Math.min(99, conversations.length)}
+                      {Math.min(99, unreadCount)}
+                    </span>
+                  )}
+                </div>
+
+                <div
+                  style={styles.iconButton}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#f3f4f6"}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "transparent"}
+                  onClick={() => navigate("/notifications")}
+                >
+                  <Bell size={20} />
+                  {notifCount > 0 && (
+                    <span style={styles.badge}>
+                      {Math.min(99, notifCount)}
                     </span>
                   )}
                 </div>

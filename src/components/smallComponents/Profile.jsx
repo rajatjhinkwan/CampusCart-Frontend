@@ -16,6 +16,8 @@ import {
 function Profile() {
   const user = useUserStore((state) => state.user);
   const navigate = useNavigate();
+  const conversations = useUserStore((state) => state.conversations || []);
+  const unreadCount = Array.isArray(conversations) ? conversations.reduce((acc, c) => acc + (c.unreadCount || 0), 0) : 0;
 
   const logout = useUserStore((state) => state.logout);
 

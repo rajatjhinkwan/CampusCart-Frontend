@@ -1,5 +1,9 @@
-import React, { useEffect } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import React, { useEffect, useState } from "react";
+import { GoogleMap, useJsApiLoader, Marker } from '@react-google-maps/api';
+
+// --- LEAFLET / OSM IMPLEMENTATION (BACKUP) ---
+/*
+import { MapContainer, TileLayer, Marker as LeafletMarker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -22,13 +26,36 @@ const RecenterMap = ({ position }) => {
   }, [position, map]);
   return null;
 };
+*/
+
+const libraries = ['places', 'geometry'];
 
 const Step5Map = ({ position }) => {
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries
+  });
+
   // Only render map if we have valid coordinates
   if (!position || !position.lat || !position.lng) return null;
 
   return (
     <div style={styles.mapWrapper}>
+      {isLoaded ? (
+        <GoogleMap
+          mapContainerStyle={styles.mapInstance}
+          center={position}
+          zoom={16}
+        >
+          <Marker position={position} />
+        </GoogleMap>
+      ) : (
+        <div>Loading Map...</div>
+      )}
+      
+      {/* --- BACKUP LEAFLET RENDER (COMMENTED) --- */}
+      {/*
       <MapContainer
         center={position}
         zoom={13}
@@ -39,11 +66,12 @@ const Step5Map = ({ position }) => {
           attribution='&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marker position={position}>
+        <LeafletMarker position={position}>
           <Popup>Detected Location</Popup>
-        </Marker>
+        </LeafletMarker>
         <RecenterMap position={position} />
       </MapContainer>
+      */}
     </div>
   );
 };

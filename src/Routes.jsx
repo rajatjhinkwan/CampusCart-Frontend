@@ -4,6 +4,7 @@ import HomePage from "./pages/homepage"; // Keep Home static for performance
 import ErrorBoundary from "./components/ErrorBoundary";
 import ScrollToTop from "./components/ScrollToTop";
 import { useUserStore } from "./store/userStore";
+import Skeleton from "./components/Skeleton";
 
 // Lazy imports
 const NotFound = lazy(() => import("./pages/notFound.jsx"));
@@ -28,10 +29,17 @@ const RoomPage = lazy(() => import("./pages/roomPage"));
 const ServicePage = lazy(() => import("./pages/services"));
 const JobsPage = lazy(() => import("./pages/jobs"));
 const Rides = lazy(() => import("./pages/rides"));
+const AcceptRides = lazy(() => import("./pages/rides/AcceptRides"));
+const LiveRide = lazy(() => import("./pages/rides/LiveRide"));
 const PromotionsPage = lazy(() => import("./pages/promotions"));
 const NotificationDetail = lazy(() => import("./pages/notifications/NotificationDetail.jsx"));
 const AdminDashboard = lazy(() => import("./pages/admin-dashboard"));
 const AdminUserProfile = lazy(() => import("./pages/admin-dashboard/UserProfile.jsx"));
+
+// Requests Pages
+const RequestsList = lazy(() => import("./pages/requests/index.jsx"));
+const CreateRequest = lazy(() => import("./pages/requests/CreateRequest.jsx"));
+const RequestDetails = lazy(() => import("./pages/requests/RequestDetails.jsx"));
 
 // Static/Info pages lazy
 const HowToBuy = lazy(() => import("./pages/forUsers/HowToBuy"));
@@ -55,17 +63,22 @@ const Testlocation = lazy(() => import("./testlocation"));
 const TestNotifications = lazy(() => import("./pages/TestNotifications"));
 
 const LoadingFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-    <div style={{
-      animation: 'spin 1s linear infinite',
-      borderRadius: '9999px',
-      height: '3rem',
-      width: '3rem',
-      borderTopWidth: '2px',
-      borderBottomWidth: '2px',
-      borderColor: '#3b82f6',
-      borderStyle: 'solid'
-    }}></div>
+  <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+    <Skeleton width="100%" height="64px" style={{ marginBottom: '24px' }} />
+    <div style={{ display: 'flex', gap: '24px' }}>
+      <div style={{ width: '250px', display: window.innerWidth < 768 ? 'none' : 'block' }}>
+        <Skeleton width="100%" height="400px" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <Skeleton width="100%" height="200px" style={{ marginBottom: '24px' }} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: '24px' }}>
+          <Skeleton width="100%" height="280px" />
+          <Skeleton width="100%" height="280px" />
+          <Skeleton width="100%" height="280px" />
+          <Skeleton width="100%" height="280px" />
+        </div>
+      </div>
+    </div>
   </div>
 );
 
@@ -103,10 +116,17 @@ const Routes = () => {
             <Route path="/services/:id" element={<ServicePage />} />
             <Route path="/jobs/:id" element={<JobsPage />} />
             <Route path="/rides" element={<Rides />} />
+            <Route path="/rides/accept" element={isAuthenticated ? <AcceptRides /> : <UserLogin />} />
+            <Route path="/rides/live/:rideId" element={isAuthenticated ? <LiveRide /> : <UserLogin />} />
             <Route path="/promotions" element={<PromotionsPage />} />
             <Route path="/notifications/:id" element={<NotificationDetail />} />
             <Route path="/admin-dashboard" element={isAuthenticated ? <AdminDashboard /> : <UserLogin />} />
             <Route path="/admin/users/:id" element={isAuthenticated ? <AdminUserProfile /> : <UserLogin />} />
+
+            {/* Request Routes */}
+            <Route path="/requests" element={<RequestsList />} />
+            <Route path="/requests/create" element={isAuthenticated ? <CreateRequest /> : <UserLogin />} />
+            <Route path="/requests/:id" element={<RequestDetails />} />
 
             <Route path="/how-to-buy" element={<HowToBuy />} />
             <Route path="/how-to-sell" element={<HowToSell />} />

@@ -1,6 +1,19 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { useJsApiLoader } from '@react-google-maps/api';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+// const DEFAULT_PHOTON = `${API_BASE}/api/geo/photon`;
+// const DEFAULT_OSM = `${API_BASE}/api/geo/osm`;
+
+const libraries = ['places', 'geometry'];
 
 const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, onSearch }) => {
+    const { isLoaded, loadError } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+        libraries
+    });
+
     const [from, setFrom] = useState('');
     const [to, setTo] = useState('');
     const [passengers, setPassengers] = useState(1);
@@ -18,7 +31,8 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
     const [searchingFrom, setSearchingFrom] = useState(false);
     const [searchingTo, setSearchingTo] = useState(false);
     const [error, setError] = useState('');
-    const searchTimeoutRef = useRef(null);
+    const fromTimeoutRef = useRef(null);
+    const toTimeoutRef = useRef(null);
 
     const styles = {
         form: { display: 'flex', flexDirection: 'column', gap: '16px' },
@@ -45,7 +59,101 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
         barButton: { backgroundColor: '#3b82f6', color: '#ffffff', border: 'none', padding: '10px 16px', borderRadius: '8px', fontWeight: '600', cursor: 'pointer' }
     };
 
-    
+    // --- GOOGLE MAPS IMPLEMENTATION ---
+    const autocompleteServiceRef = useRef(null);
+    const geocoderRef = useRef(null);
+
+    useEffect(() => {
+        if (isLoaded && window.google) {
+            if (!autocompleteServiceRef.current) {
+                autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+            }
+            if (!geocoderRef.current) {
+                geocoderRef.current = new window.google.maps.Geocoder();
+            }
+        }
+    }, [isLoaded]);
+
+    const googleGeocode = async (address) => {
+        if (!geocoderRef.current) return null;
+        try {
+            const res = await geocoderRef.current.geocode({ address });
+            if (res.results && res.results.length > 0) {
+                const result = res.results[0];
+                const loc = result.geometry.location;
+                return {
+                    lat: loc.lat(),
+                    lng: loc.lng(),
+                    address: result.formatted_address
+                };
+            }
+        } catch (err) {
+            console.error("Google Geocoding error:", err);
+        }
+        return null;
+    };
+
+    const googleReverseGeocode = async (lat, lng) => {
+        if (!geocoderRef.current) return null;
+        try {
+            const res = await geocoderRef.current.geocode({ location: { lat, lng } });
+            if (res.results && res.results.length > 0) {
+                return res.results[0].formatted_address;
+            }
+        } catch (err) {
+            console.error("Google Reverse Geocoding error:", err);
+        }
+        return null;
+    };
+
+    const googleSearchSuggestions = async (input) => {
+        if (!isLoaded || !window.google) return [];
+        if (!autocompleteServiceRef.current) {
+             autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService();
+        }
+        
+        if (!input || input.trim().length < 3) return [];
+        
+        return new Promise((resolve) => {
+            try {
+                autocompleteServiceRef.current.getPlacePredictions({ input }, (predictions, status) => {
+                    if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions) {
+                        resolve(predictions.map(p => ({
+                            label: p.description,
+                            placeId: p.place_id
+                        })));
+                    } else {
+                        console.warn("Google Autocomplete status:", status);
+                        resolve([]);
+                    }
+                });
+            } catch (err) {
+                console.error("Google Autocomplete error:", err);
+                resolve([]);
+            }
+        });
+    };
+
+    const getPlaceDetails = async (placeId) => {
+        if (!window.google || !placeId) return null;
+        const placesService = new window.google.maps.places.PlacesService(document.createElement('div'));
+        return new Promise((resolve) => {
+            placesService.getDetails({ placeId }, (place, status) => {
+                if (status === window.google.maps.places.PlacesServiceStatus.OK && place.geometry && place.geometry.location) {
+                    resolve({
+                        lat: place.geometry.location.lat(),
+                        lng: place.geometry.location.lng(),
+                        address: place.formatted_address
+                    });
+                } else {
+                    resolve(null);
+                }
+            });
+        });
+    };
+
+    // --- BACKUP: PHOTON / OSM IMPLEMENTATION (COMMENTED) ---
+    /*
     const photonLabel = (props) => {
         const parts = [
             props.name,
@@ -57,7 +165,8 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
         return parts.join(', ');
     };
     const geocodeAddress = async (query) => {
-        const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const photonBase = `${API_BASE}/api/geo/photon`;
         const res = await fetch(`${photonBase}/?q=${encodeURIComponent(query)}&limit=1`, { headers: { 'Accept': 'application/json' } });
         if (res.ok) {
             const data = await res.json();
@@ -67,7 +176,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
                 return { lat: parseFloat(lat), lng: parseFloat(lng), address: photonLabel(feat.properties) || query };
             }
         }
-        const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
+        const osmBase = `${API_BASE}/api/geo/osm`;
         const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
         const url = `${osmBase}/search?format=jsonv2&limit=1&email=${encodeURIComponent(contact)}&q=${encodeURIComponent(query)}`;
         const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -79,7 +188,8 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
     };
     const searchSuggestions = async (q) => {
         if (!q || q.trim().length < 3) return [];
-        const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
+        const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const photonBase = `${API_BASE}/api/geo/photon`;
         const res = await fetch(`${photonBase}/?q=${encodeURIComponent(q)}&limit=5`, { headers: { 'Accept': 'application/json' } });
         if (res.ok) {
             const data = await res.json();
@@ -90,7 +200,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
                 return { label, lat: parseFloat(lat), lng: parseFloat(lng) };
             });
         }
-        const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
+        const osmBase = `${API_BASE}/api/geo/osm`;
         const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
         const url = `${osmBase}/search?format=jsonv2&email=${encodeURIComponent(contact)}&q=${encodeURIComponent(q)}&addressdetails=0&limit=5`;
         const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
@@ -98,18 +208,49 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
         const data2 = await res2.json();
         return (data2 || []).map(d => ({ label: d.display_name, lat: parseFloat(d.lat), lng: parseFloat(d.lon) }));
     };
+    */
+    
+    // Wrapper functions to switch between Google and Backup
+    const geocodeAddress = async (query) => {
+        // Use Google Maps Geocoding
+        const result = await googleGeocode(query);
+        if (result) return result;
+        throw new Error('GEOCODE_NOT_FOUND');
+    };
+
+    const searchSuggestions = async (q) => {
+        // Use Google Maps Autocomplete
+        return await googleSearchSuggestions(q);
+    };
+
+    useEffect(() => {
+        if (loadError) console.error("Google Maps Load Error:", loadError);
+    }, [loadError]);
+
     const handleFromChange = (e) => {
         const val = e.target.value;
         setFrom(val);
         setFromCoords(null);
         setFromHighlight(-1);
+        
+        if (!val || val.length < 3) {
+            setFromSuggestions([]);
+            return;
+        }
+
         setSearchingFrom(true);
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        searchTimeoutRef.current = setTimeout(async () => {
+        if (fromTimeoutRef.current) clearTimeout(fromTimeoutRef.current);
+        fromTimeoutRef.current = setTimeout(async () => {
             try {
-                const results = await searchSuggestions(val);
+                // Ensure Google Maps is loaded
+                if (!isLoaded || !window.google) {
+                    console.warn("Google Maps not ready");
+                    return;
+                }
+                const results = await googleSearchSuggestions(val);
                 setFromSuggestions(results);
-            } catch {
+            } catch (err) {
+                console.error("Suggestion error:", err);
                 setFromSuggestions([]);
             } finally {
                 setSearchingFrom(false);
@@ -121,37 +262,66 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
         setTo(val);
         setToCoords(null);
         setToHighlight(-1);
+        
+        if (!val || val.length < 3) {
+            setToSuggestions([]);
+            return;
+        }
+
         setSearchingTo(true);
-        if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-        searchTimeoutRef.current = setTimeout(async () => {
+        if (toTimeoutRef.current) clearTimeout(toTimeoutRef.current);
+        toTimeoutRef.current = setTimeout(async () => {
             try {
-                const results = await searchSuggestions(val);
+                 // Ensure Google Maps is loaded
+                if (!isLoaded || !window.google) {
+                    console.warn("Google Maps not ready");
+                    return;
+                }
+                const results = await googleSearchSuggestions(val);
                 setToSuggestions(results);
-            } catch {
+            } catch (err) {
+                console.error("Suggestion error:", err);
                 setToSuggestions([]);
             } finally {
                 setSearchingTo(false);
             }
         }, 300);
     };
-    const selectFromSuggestion = (s) => {
+    const selectFromSuggestion = async (s) => {
         setFrom(s.label);
-        setFromCoords({ lat: s.lat, lng: s.lng });
+        
+        let coords = { lat: s.lat, lng: s.lng };
+        // If Google Place ID is present, fetch details
+        if (s.placeId) {
+             const details = await getPlaceDetails(s.placeId);
+             if (details) coords = { lat: details.lat, lng: details.lng };
+        }
+
+        setFromCoords(coords);
         setFromSuggestions([]);
         setFromHighlight(-1);
         if (typeof onLocationsChange === 'function') {
-            onLocationsChange({ lat: s.lat, lng: s.lng, address: s.label }, toCoords ? { lat: toCoords.lat, lng: toCoords.lng, address: to } : null);
+            onLocationsChange({ ...coords, address: s.label }, toCoords ? { lat: toCoords.lat, lng: toCoords.lng, address: to } : null);
         }
     };
-    const selectToSuggestion = (s) => {
+    const selectToSuggestion = async (s) => {
         setTo(s.label);
-        setToCoords({ lat: s.lat, lng: s.lng });
+
+        let coords = { lat: s.lat, lng: s.lng };
+        // If Google Place ID is present, fetch details
+        if (s.placeId) {
+             const details = await getPlaceDetails(s.placeId);
+             if (details) coords = { lat: details.lat, lng: details.lng };
+        }
+
+        setToCoords(coords);
         setToSuggestions([]);
         setToHighlight(-1);
         if (typeof onLocationsChange === 'function') {
-            onLocationsChange(fromCoords ? { lat: fromCoords.lat, lng: fromCoords.lng, address: from } : null, { lat: s.lat, lng: s.lng, address: s.label });
+            onLocationsChange(fromCoords ? { lat: fromCoords.lat, lng: fromCoords.lng, address: from } : null, { ...coords, address: s.label });
         }
     };
+
     const onFromKeyDown = (e) => {
         if (fromSuggestions.length === 0) return;
         if (e.key === 'ArrowDown') setFromHighlight(h => Math.min(h + 1, fromSuggestions.length - 1));
@@ -166,48 +336,38 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
     };
     const useMyLocation = async () => {
         setError('');
+        if (!isLoaded || !window.google) {
+             setError('Maps service not ready. Please wait.');
+             return;
+        }
+        if (!geocoderRef.current) {
+            geocoderRef.current = new window.google.maps.Geocoder();
+        }
+        
         try {
-            await new Promise((resolve, reject) => {
+            const pos = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: true, timeout: 10000 });
-            }).then(async (pos) => {
-                const { latitude, longitude } = pos.coords;
-                const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
-                const res = await fetch(`${photonBase}/reverse?lat=${latitude}&lon=${longitude}`, { headers: { 'Accept': 'application/json' } });
-                let address = '';
-                if (res.ok) {
-                    const data = await res.json();
-                    const feat = Array.isArray(data.features) ? data.features[0] : null;
-                    if (feat && feat.properties) address = photonLabel(feat.properties);
-                }
-                if (!address) {
-                    const resAlt = await fetch(`${photonBase}/?lat=${latitude}&lon=${longitude}&reverse=true&limit=1`, { headers: { 'Accept': 'application/json' } });
-                    if (resAlt.ok) {
-                        const dataAlt = await resAlt.json();
-                        const featAlt = Array.isArray(dataAlt.features) ? dataAlt.features[0] : null;
-                        if (featAlt && featAlt.properties) address = photonLabel(featAlt.properties);
-                    }
-                }
-                if (!address) {
-                    const osmBase = import.meta.env.VITE_OSM_PROXY_BASE || 'https://nominatim.openstreetmap.org';
-                    const contact = import.meta.env.VITE_NOMINATIM_CONTACT || 'admin@campuscart.com';
-                    const url = `${osmBase}/reverse?format=jsonv2&email=${encodeURIComponent(contact)}&lat=${latitude}&lon=${longitude}`;
-                    const res2 = await fetch(url, { headers: { 'Accept': 'application/json' } });
-                    if (res2.ok) {
-                        const data2 = await res2.json();
-                        address = data2.display_name || `${latitude}, ${longitude}`;
-                    } else {
-                        address = `${latitude}, ${longitude}`;
-                    }
-                }
-                setFrom(address);
-                setFromCoords({ lat: latitude, lng: longitude });
-                setFromSuggestions([]);
-                setFromHighlight(-1);
-                if (typeof onLocationsChange === 'function') {
-                    onLocationsChange({ lat: latitude, lng: longitude, address }, toCoords ? { lat: toCoords.lat, lng: toCoords.lng, address: to } : null);
-                }
             });
-        } catch {
+            
+            const { latitude, longitude } = pos.coords;
+            
+            // --- GOOGLE MAPS REVERSE GEOCODING ---
+            let address = await googleReverseGeocode(latitude, longitude);
+            
+            if (!address) {
+                 address = `${latitude}, ${longitude}`;
+            }
+
+            setFrom(address);
+            setFromCoords({ lat: latitude, lng: longitude });
+            setFromSuggestions([]);
+            setFromHighlight(-1);
+            if (typeof onLocationsChange === 'function') {
+                onLocationsChange({ lat: latitude, lng: longitude, address }, toCoords ? { lat: toCoords.lat, lng: toCoords.lng, address: to } : null);
+            }
+            
+        } catch (err) {
+            console.error(err);
             setError('Unable to get current location');
         }
     };
@@ -350,7 +510,7 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
                     value={passengers}
                     onChange={(e) => setPassengers(e.target.value)}
                     min="1"
-                    max="8"
+                    max="10"
                     style={{ width: '80px', ...styles.barInput }}
                     placeholder="1+"
                 />
@@ -361,6 +521,11 @@ const RideRequestForm = ({ onRideRequested, onLocationsChange, compact = false, 
 
     return (
         <form onSubmit={handleSubmit} style={styles.form}>
+            {loadError && (
+                <div style={styles.errorBox}>
+                    Error loading maps: {loadError.message}
+                </div>
+            )}
             <div>
                 <label htmlFor="from" style={styles.label}>
                     From:

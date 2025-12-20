@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "../../../lib/axios";
 import {
   Filter, MapPin, Tag, Calendar,
@@ -24,12 +24,26 @@ const SearchFilter = ({ filters = {}, setFilters, type = "Products" }) => {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
   const isMobile = width < 640;
 
+  // Spotlight State
+  const containerRef = useRef(null);
+  const [spotlightPos, setSpotlightPos] = useState({ x: 0, y: 0 });
+  const [spotlightOpacity, setSpotlightOpacity] = useState(0);
+
   // --- Static Data (Could be passed as props too) ---
   const [productCategories, setProductCategories] = useState([]);
   const locations = ["Kuthiyal-Sain", "Chamoli", "Gopeshwar", "Mandal", "Nandprayag", "Pursadi"];
   const conditionOptions = ["New", "Like New", "Used"];
   const roomTypes = ["Single Room", "Double Room", "1BHK", "2BHK", "Hostel Bed", "PG", "Short-Term Stay", "Other"];
   const furnishingOptions = ["Furnished", "Semi-Furnished", "Unfurnished"];
+
+  const handleMouseMove = (e) => {
+    if (!containerRef.current) return;
+    const rect = containerRef.current.getBoundingClientRect();
+    setSpotlightPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = () => setSpotlightOpacity(1);
+  const handleMouseLeave = () => setSpotlightOpacity(0);
 
   // Fetch categories for Products tab
   useEffect(() => {
@@ -209,8 +223,14 @@ const SearchFilter = ({ filters = {}, setFilters, type = "Products" }) => {
     },
   };
 
+  const containerStyle = {
+    ...styles.container,
+    backgroundImage: `radial-gradient(circle at ${spotlightPos.x}px ${spotlightPos.y}px, rgba(37,99,235,${0.08 * spotlightOpacity}), transparent 80%)`,
+    position: 'relative'
+  };
+
   return (
-    <div style={styles.container}>
+    <div ref={containerRef} onMouseMove={handleMouseMove} onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} style={containerStyle}>
       {/* Header */}
       <div style={styles.headerRow}>
         <div style={styles.title}><Filter size={20} /> Filters</div>

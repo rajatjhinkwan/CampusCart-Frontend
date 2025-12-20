@@ -1,11 +1,16 @@
-import { useState } from "react";
-import { User, Lock, Rocket, Eye, EyeOff, Mail, MapPin } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { User, Lock, Rocket, Eye, EyeOff, Mail, MapPin, UserPlus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
- 
+import { GoogleLogin } from '@react-oauth/google';
+import { useJsApiLoader } from '@react-google-maps/api';
+
 import { useUserStore } from "../../store/userStore";
+
+const libraries = ['places', 'geometry'];
 
 export default function Signup() {
     const navigate = useNavigate();
+    const isAuthenticated = useUserStore((s) => s.isAuthenticated);
     const [formData, setFormData] = useState({
         fullName: "",
         email: "",
@@ -19,20 +24,59 @@ export default function Signup() {
     const [error, setError] = useState("");
     const loading = useUserStore((s) => s.loading);
     
+    const { isLoaded } = useJsApiLoader({
+        id: 'google-map-script',
+        googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+        libraries
+    });
+
+    // OTP State
+    const [showOtpModal, setShowOtpModal] = useState(false);
+    const [otp, setOtp] = useState("");
+    const [userIdForOtp, setUserIdForOtp] = useState(null);
+    
     // Location Autocomplete State
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const searchTimeoutRef = useRef(null);
+    const [autocompleteService, setAutocompleteService] = useState(null);
+
+    useEffect(() => {
+        if (isLoaded && !autocompleteService && window.google) {
+            setAutocompleteService(new window.google.maps.places.AutocompleteService());
+        }
+    }, [isLoaded, autocompleteService]);
 
     const handleLocationSearch = async (query) => {
         if (!query || query.length < 3) {
             setSuggestions([]);
             return;
         }
+
+        // --- GOOGLE PLACES AUTOCOMPLETE ---
+        if (autocompleteService) {
+            try {
+                const res = await autocompleteService.getPlacePredictions({
+                    input: query,
+                    types: ['(cities)']
+                });
+                if (res && res.predictions) {
+                    const cities = res.predictions.map(p => p.description);
+                    setSuggestions(cities);
+                    setShowSuggestions(true);
+                }
+            } catch (err) {
+                console.error("Google Autocomplete failed", err);
+            }
+        }
         
+        // --- BACKUP: PHOTON (COMMENTED) ---
+        /*
         try {
-            const photonBase = import.meta.env.VITE_PHOTON_PROXY_BASE || 'https://photon.komoot.io';
-            const res = await fetch(`${photonBase}/api/?q=${encodeURIComponent(query)}&limit=5&lang=en`);
+            const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            // Use backend proxy to avoid CORS/mixed-content issues
+            const photonBase = `${API_BASE}/api/geo/photon`;
+            const res = await fetch(`${photonBase}/?q=${encodeURIComponent(query)}&limit=5&lang=en`);
             if (res.ok) {
                 const data = await res.json();
                 const cities = data.features.map(f => {
@@ -45,6 +89,7 @@ export default function Signup() {
         } catch (err) {
             console.error("Location search failed", err);
         }
+        */
     };
 
     const handleChange = (e) => {
@@ -66,7 +111,15 @@ export default function Signup() {
 
 
     const signup = useUserStore((state) => state.signup);
+    const verifyOtp = useUserStore((state) => state.verifyOtp);
+    const googleLogin = useUserStore((state) => state.googleLogin);
     const setAppLocation = useUserStore((s) => s.setAppLocation);
+
+    useEffect(() => {
+        if (isAuthenticated) {
+            navigate("/homepage");
+        }
+    }, [isAuthenticated, navigate]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -94,46 +147,75 @@ export default function Signup() {
             email: formData.email,
             password: formData.password,
             role: formData.role,
+            location: formData.location,
         };
 
         const result = await signup(payload);
 
         if (result.success) {
+            setUserIdForOtp(result.userId);
             if (formData.location) {
-                await setAppLocation(formData.location, { saveToProfile: true });
+                // Location sent in signup, just update local state
+                await setAppLocation(formData.location, { saveToProfile: false });
             }
-            navigate("/homepage");
+            setShowOtpModal(true);
         } else {
             console.error("Signup failed:", result.error);
             setError(result.error || "Signup failed");
-            // Optional: set local error state to display in UI if desired, 
-            // but toast is already handled in store.
         }
     };
 
+    const handleVerifyOtp = async (e) => {
+        e.preventDefault();
+        if (!otp || otp.length !== 6) {
+            setError("Please enter a valid 6-digit OTP");
+            return;
+        }
+        
+        const result = await verifyOtp({ userId: userIdForOtp, otp });
+        if (result.success) {
+            setShowOtpModal(false);
+            navigate("/homepage");
+        } else {
+            setError(result.error || "OTP Verification failed");
+        }
+    };
+
+    const handleGoogleSuccess = async (credentialResponse) => {
+        const result = await googleLogin(credentialResponse.credential);
+        if (result.success) {
+             navigate("/homepage");
+        } else {
+            setError(result.error || "Google Login failed");
+        }
+    };
+    
+    const handleGoogleError = () => {
+        setError("Google Login Failed");
+    };
 
     const styles = {
         container: {
             minHeight: "100vh",
-            background: "#f9fafb",
+            background: "linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "20px",
-            fontFamily: "sans-serif",
+            padding: "24px",
+            fontFamily: "Arial, sans-serif",
         },
         card: {
             width: "100%",
-            maxWidth: "1100px",
+            maxWidth: "1040px",
             display: "grid",
             gridTemplateColumns: "1fr 1fr",
             background: "#fff",
-            borderRadius: "12px",
+            borderRadius: "16px",
             overflow: "hidden",
-            boxShadow: "0 3px 10px rgba(0,0,0,0.1)",
+            boxShadow: "0 10px 30px rgba(2, 6, 23, 0.1)",
         },
         leftPanel: {
-            padding: "40px",
+            padding: "48px",
             borderRight: "1px solid #e5e7eb",
         },
         title: {
@@ -162,7 +244,7 @@ export default function Signup() {
             color: "#64748b",
         },
         rightPanel: {
-            padding: "40px",
+            padding: "48px",
         },
         formTitle: {
             textAlign: "center",
@@ -198,12 +280,13 @@ export default function Signup() {
         },
         input: {
             width: "100%",
-            border: "1px solid #d1d5db",
-            borderRadius: "8px",
-            padding: "10px 36px 10px 36px",
+            border: "1px solid #cbd5e1",
+            borderRadius: "10px",
+            padding: "12px 36px 12px 36px",
             fontSize: "14px",
             marginBottom: "20px",
             outline: "none",
+            backgroundColor: "#ffffff",
         },
         inputIcon: {
             position: "absolute",
@@ -229,11 +312,16 @@ export default function Signup() {
             background: "#2563eb",
             color: "#fff",
             padding: "12px",
-            borderRadius: "8px",
+            borderRadius: "10px",
             fontSize: "15px",
             border: "none",
             cursor: "pointer",
             opacity: loading ? 0.7 : 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "8px",
+            fontWeight: "600",
         },
         loginText: {
             textAlign: "center",
@@ -261,6 +349,21 @@ export default function Signup() {
         }),
     };
 
+    const modalStyles = {
+        overlay: {
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+        },
+        content: {
+            backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center', position: 'relative'
+        },
+        input: {
+            width: '100%', padding: '12px', fontSize: '18px', letterSpacing: '4px', textAlign: 'center',
+            marginBottom: '20px', borderRadius: '8px', border: '1px solid #cbd5e1'
+        }
+    };
+
     const passwordStrength = (pwd) => {
         let score = 0;
         if (!pwd) return 0;
@@ -274,6 +377,33 @@ export default function Signup() {
 
     return (
         <div style={styles.container}>
+            {/* OTP Modal */}
+            {showOtpModal && (
+                <div style={modalStyles.overlay}>
+                    <div style={modalStyles.content}>
+                        <button onClick={() => setShowOtpModal(false)} style={{position: 'absolute', right: 10, top: 10, border: 'none', background: 'transparent', cursor: 'pointer'}}>
+                            <X size={20} />
+                        </button>
+                        <h3 style={{marginBottom: '10px', fontSize: '20px', fontWeight: 'bold'}}>Verify Email</h3>
+                        <p style={{marginBottom: '20px', color: '#64748b', fontSize: '14px'}}>
+                            Enter the 6-digit code sent to your email.
+                        </p>
+                        <form onSubmit={handleVerifyOtp}>
+                            <input 
+                                type="text" 
+                                value={otp} 
+                                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                placeholder="000000"
+                                maxLength={6}
+                                style={modalStyles.input}
+                            />
+                            {error && <p style={{color: 'red', fontSize: '12px', marginBottom: '10px'}}>{error}</p>}
+                            <button type="submit" style={styles.button}>Verify Code</button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
             <div style={styles.card}>
 
                 {/* LEFT SECTION */}
@@ -312,42 +442,32 @@ export default function Signup() {
                 <form style={styles.rightPanel} onSubmit={handleSubmit}>
                     <h2 style={styles.formTitle}>Create Account</h2>
 
-                    {/* ROLE */}
-                    <div style={styles.radioContainer}>
-                        <label
-                            style={{
-                                ...styles.radio,
-                                ...(formData.role === "buyer" ? styles.radioActive : {}),
-                            }}
-                        >
-                            <input
-                                type="radio"
-                                name="role"
-                                value="buyer"
-                                style={{ display: "none" }}
-                                checked={formData.role === "buyer"}
-                                onChange={handleChange}
-                            />
-                            Buyer
-                        </label>
-
-                        <label
-                            style={{
-                                ...styles.radio,
-                                ...(formData.role === "seller" ? styles.radioActive : {}),
-                            }}
-                        >
-                            <input
-                                type="radio"
-                                name="role"
-                                value="seller"
-                                style={{ display: "none" }}
-                                checked={formData.role === "seller"}
-                                onChange={handleChange}
-                            />
-                            Seller
-                        </label>
+                    {/* Google Login */}
+                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+                        <GoogleLogin onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
                     </div>
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                        <span style={{ padding: '0 10px', color: '#94a3b8', fontSize: '13px' }}>OR</span>
+                        <div style={{ flex: 1, height: '1px', backgroundColor: '#e2e8f0' }}></div>
+                    </div>
+
+                    {/* ROLE SELECTION REMOVED - Defaulting to Buyer internally */}
+                    {/* <div style={styles.radioContainer}>
+                        <div
+                            style={{ ...styles.radio, ...(formData.role === "buyer" ? styles.radioActive : {}) }}
+                            onClick={() => setFormData(prev => ({ ...prev, role: "buyer" }))}
+                        >
+                            Buyer
+                        </div>
+                        <div
+                            style={{ ...styles.radio, ...(formData.role === "seller" ? styles.radioActive : {}) }}
+                            onClick={() => setFormData(prev => ({ ...prev, role: "seller" }))}
+                        >
+                            Seller
+                        </div>
+                    </div> */}
 
                     {/* FULL NAME */}
                     <label style={styles.inputLabel}>Full Name *</label>
@@ -479,7 +599,7 @@ export default function Signup() {
                             {error}
                         </div>
                     ) : null}
-                    <button type="submit" style={styles.button} disabled={loading}>{loading ? "Creating Account..." : "Sign Up"}</button>
+                    <button type="submit" style={styles.button} disabled={loading}><UserPlus size={18} /> {loading ? "Creating Account..." : "Sign Up"}</button>
 
                     <p style={styles.loginText} onClick={() => navigate("/user-login")}>
                         Already have an account?

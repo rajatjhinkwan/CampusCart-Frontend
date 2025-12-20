@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Heart,
@@ -44,6 +44,10 @@ export default function ProductCard({ product }) {
   const [width, setWidth] = useState(typeof window !== "undefined" ? window.innerWidth : 1024);
   const isMobile = width < 640;
   const isTablet = width >= 640 && width < 1024;
+  
+  const cardRef = useRef(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = useState(0);
 
   if (!product) return null;
 
@@ -89,6 +93,27 @@ export default function ProductCard({ product }) {
   };
 
   // ------------------------------
+  // SPOTLIGHT HANDLER
+  // ------------------------------
+  const handleMouseMove = (e) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+  };
+
+  const handleMouseEnter = (e) => {
+    setOpacity(1);
+    e.currentTarget.style.transform = "translateY(-4px)";
+    e.currentTarget.style.boxShadow = "0 10px 15px rgba(0,0,0,0.12)";
+  };
+
+  const handleMouseLeave = (e) => {
+    setOpacity(0);
+    e.currentTarget.style.transform = "translateY(0)";
+    e.currentTarget.style.boxShadow = "none";
+  };
+
+  // ------------------------------
   // STYLES
   // ------------------------------
   const styles = {
@@ -102,7 +127,19 @@ export default function ProductCard({ product }) {
       cursor: "pointer",
       position: "relative",
       height: "100%",
-      transition: "0.2s ease",
+      transition: "transform 0.2s ease, box-shadow 0.2s ease",
+    },
+    spotlight: {
+      pointerEvents: "none",
+      position: "absolute",
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      opacity: opacity,
+      background: `radial-gradient(600px circle at ${position.x}px ${position.y}px, rgba(16, 185, 129, 0.06), transparent 40%)`,
+      zIndex: 10,
+      transition: "opacity 0.2s",
     },
     imageWrapper: {
       width: "100%",
@@ -195,18 +232,14 @@ export default function ProductCard({ product }) {
 
   return (
     <div
+      ref={cardRef}
       style={styles.card}
       onClick={handleNavigate}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.transform = "translateY(-4px)";
-        e.currentTarget.style.boxShadow =
-          "0 10px 15px rgba(0,0,0,0.12)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.transform = "translateY(0)";
-        e.currentTarget.style.boxShadow = "none";
-      }}
+      onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
+      <div style={styles.spotlight} />
       {/* ------------------------------ */}
       {/* IMAGE */}
       {/* ------------------------------ */}

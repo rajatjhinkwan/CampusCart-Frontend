@@ -1,15 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import axios from '../../lib/axios';
 import toast from 'react-hot-toast';
-import io from 'socket.io-client';
+import io from 'socket.io-client'; // Ensure socket.io client is imported
 import { useUserStore } from '../../store/userStore';
+import { useJsApiLoader } from '@react-google-maps/api';
 
-const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, currentUserInstitution, onCountChange, onShowDetails }) => {
+const libraries = ['places', 'geometry'];
+
+const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, currentUserInstitution, onCountChange, onShowDetails, style }) => {
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(true);
   const [acceptingRide, setAcceptingRide] = useState(null);
   const [registered, setRegistered] = useState(false);
   const { user } = useUserStore();
+  const [userLocation, setUserLocation] = useState(null);
+
+  const { isLoaded } = useJsApiLoader({
+    id: 'google-map-script',
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries
+  });
   const isDriverApproved = !!(
     user?.role === 'driver' ||
     user?.settings?.selling?.driverApproved === true
@@ -41,13 +51,14 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
 
   const fetchOpenRides = async () => {
     try {
-      const { latitude, longitude } = locationRef.current || {};
+      // We want to show ALL open rides regardless of distance for now,
+      // so we do NOT send lat/lng to the backend.
+      // The backend will return the latest 50 open rides.
       const params = {};
-      if (latitude && longitude) {
-        params.lat = latitude;
-        params.lng = longitude;
-        params.radiusKm = 10;
-      }
+      
+      // params.lat = ... // Disabled to show all rides
+      // params.lng = ...
+      // params.radiusKm = 10;
 
       const response = await axios.get('/api/rides/open', { params });
       setRides(response.data?.rides || []);
@@ -150,7 +161,8 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
       boxShadow: '0 6px 20px rgba(0, 0, 0, 0.08)',
       height: 'calc(100vh - 160px)',
       display: 'flex',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      ...(style || {})
     },
     title: {
       fontSize: '18px',
@@ -365,6 +377,11 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
       );
     }
 
+    // Filter out rides created by the current user
+    // if (user?._id) {
+    //   filtered = filtered.filter(r => r.passengerId?._id !== user._id);
+    // }
+
     if (origin && origin.trim()) {
       const q = origin.trim().toLowerCase();
       filtered = filtered.filter(r => (r.from?.address || '').toLowerCase().includes(q));
@@ -409,42 +426,59 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
         </div>
       ) : (
         <div style={styles.ridesList}>
-          {displayRides.map((ride) => (
-            <div key={ride._id} style={styles.rideCard}>
+          {displayRides.map((ride) => {
+        const isMyRide = user?._id && ride.passengerId?._id === user._id;
+        return (
+            <div 
+              key={ride._id} 
+              style={styles.rideCard}
+              onClick={() => onShowDetails && onShowDetails(ride)}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "translateY(-4px)";
+                e.currentTarget.style.boxShadow = "0 10px 15px rgba(0,0,0,0.12)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "translateY(0)";
+                e.currentTarget.style.boxShadow = "none";
+              }}
+            >
               <div style={styles.rideHeader}>
-                <div style={styles.passengerInfo}>
-                  <img
-                    src={ride.passengerId?.avatar || 'https://via.placeholder.com/64x64.png?text=+'}
-                    alt=""
-                    style={styles.avatar}
-                  />
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <h3 style={styles.passengerName}>
-                        {ride.passengerId?.name || 'Anonymous Passenger'}
-                      </h3>
-                      {ride.passengerId?.institution && currentUserInstitution && 
-                       ride.passengerId.institution.trim().toLowerCase() === currentUserInstitution.trim().toLowerCase() && (
-                        <span style={{ fontSize: '10px', backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', marginLeft: '6px', border: '1px solid #93c5fd' }}>
-                          SAME INSTITUTION
-                        </span>
-                      )}
-                      <span style={styles.rating}>★ 4.8</span>
+                  <div style={styles.userInfo}>
+                    <img 
+                      src={ride.passengerId?.avatar || 'https://via.placeholder.com/40'} 
+                      alt={ride.passengerId?.name || 'User'} 
+                      style={styles.avatar}
+                    />
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <p style={styles.userName}>{ride.passengerId?.name || 'Passenger'}</p>
+                          {isMyRide && (
+                             <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fcd34d' }}>
+                               YOU
+                             </span>
+                           )}
+                           {ride.passengerId?.institution && currentUserInstitution && 
+                            ride.passengerId.institution.trim().toLowerCase() === currentUserInstitution.trim().toLowerCase() && (
+                             <span style={{ fontSize: '10px', backgroundColor: '#dbeafe', color: '#1e40af', padding: '2px 6px', borderRadius: '4px', border: '1px solid #93c5fd' }}>
+                               SAME INST.
+                             </span>
+                           )}
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px' }}>
+                          <p style={styles.timeAgo}>{formatTimeAgo(ride.createdAt)}</p>
+                          <span style={{ fontSize: '12px', color: '#6B7280' }}>• {ride.seatsRequested} seat{ride.seatsRequested > 1 ? 's' : ''}</span>
+                          {distanceText && (
+                              <span style={{ fontSize: '12px', color: '#10B981', fontWeight: '600' }}>
+                                  • {distanceText}
+                              </span>
+                          )}
+                      </div>
                     </div>
-                    <p style={styles.seatsText}>
-                      {ride.seatsRequested} seat{ride.seatsRequested > 1 ? 's' : ''} requested
-                    </p>
+                  </div>
+                  <div style={styles.priceTag}>
+                    ${ride.distanceKm ? Math.max(10, Math.round(2 + ride.distanceKm * 1)) : 10}
                   </div>
                 </div>
-                <div style={styles.rideStats}>
-                  <p style={styles.statText}>
-                    {ride.distanceKm?.toFixed(1)} km
-                  </p>
-                  <p style={styles.statText}>
-                    ~{ride.estimatedDurationMins} min
-                  </p>
-                </div>
-              </div>
 
               <div style={styles.locations}>
                 <div style={styles.locationItem}>
@@ -471,14 +505,14 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
                   Details
                 </button>
                 <button
-                  onClick={() => handleAcceptRide(ride._id)}
-                  disabled={acceptingRide === ride._id || !canAccept}
+                  onClick={(e) => { e.stopPropagation(); handleAcceptRide(ride._id); }}
+                  disabled={acceptingRide === ride._id || !canAccept || isMyRide}
                   style={{
                     ...styles.acceptButton,
-                    ...((acceptingRide === ride._id || !canAccept) ? styles.acceptButtonDisabled : {})
+                    ...((acceptingRide === ride._id || !canAccept || isMyRide) ? styles.acceptButtonDisabled : {})
                   }}
                   onMouseEnter={(e) => {
-                    if (acceptingRide !== ride._id && canAccept) {
+                    if (acceptingRide !== ride._id && canAccept && !isMyRide) {
                       e.target.style.backgroundColor = styles.acceptButtonHover.backgroundColor;
                     }
                   }}
@@ -488,11 +522,12 @@ const OpenRidesList = ({ onRideAccepted, filters = {}, sameInstitutionFilter, cu
                     }
                   }}
                 >
-                  {acceptingRide === ride._id ? 'Processing...' : (canAccept ? 'Request' : 'Driver Required')}
+                  {acceptingRide === ride._id ? 'Processing...' : (isMyRide ? 'My Request' : (canAccept ? 'Accept Ride' : 'Driver Required'))}
                 </button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
     </div>

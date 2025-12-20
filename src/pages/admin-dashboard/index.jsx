@@ -22,7 +22,7 @@ const styles = {
   btnSecondary: { background: '#10B981', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 12px', cursor: 'pointer', fontWeight: 600 },
   pill: { background: '#EEF2FF', color: '#3730A3', borderRadius: 9999, padding: '3px 8px', fontSize: 12, fontWeight: 700 },
   layout: { display: 'grid', gridTemplateColumns: '240px 1fr', minHeight: 'calc(100vh - 72px)' },
-  sidebar: { background: '#0B1220', color: '#CBD5E1', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 },
+  sidebar: { background: 'linear-gradient(180deg, #1e3a8a 0%, #3b82f6 100%)', color: '#CBD5E1', padding: 16, display: 'flex', flexDirection: 'column', gap: 8 },
   sideItem: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 8, cursor: 'pointer' },
   sideItemActive: { background: '#111827', color: '#fff' },
   content: { padding: 16 },
@@ -429,6 +429,28 @@ export default function AdminDashboard() {
                   <option value={90}>Last 90 days</option>
                   <option value={365}>Last 1 year</option>
                 </select>
+              </div>
+              
+              <div style={{ marginTop: 24, padding: 16, backgroundColor: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd' }}>
+                  <h4 style={{ fontSize: 14, fontWeight: 600, color: '#0369a1', marginBottom: 8 }}>Dashboard Guide</h4>
+                  <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#2563EB' }}></span>
+                          <span>Sales Volume</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#10B981' }}></span>
+                          <span>Inventory Value</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#F59E0B' }}></span>
+                          <span>Avg. Price</span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                          <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#6366F1' }}></span>
+                          <span>New Listings</span>
+                      </div>
+                  </div>
               </div>
             </>
           )}

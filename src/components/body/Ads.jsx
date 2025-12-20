@@ -213,7 +213,7 @@ const Ads = () => {
         
         {/* Left Side Content */}
         <div style={styles.leftContent}>
-          <div style={styles.tagline}>● India's Trusted Marketplace</div>
+          <div style={styles.tagline}>● Trusted Marketplace</div>
           
           <h1 style={styles.heading}>
             A New City.<br />
@@ -230,7 +230,7 @@ const Ads = () => {
               style={styles.primaryBtn}
               onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
               onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-              onClick={() => navigate('/properties')} // Assuming route
+              onClick={() => navigate('/sell-item')} // Assuming route
             >
               <Home size={20} />
               Rent a Home
@@ -240,7 +240,7 @@ const Ads = () => {
               style={styles.secondaryBtn}
               onMouseEnter={(e) => e.currentTarget.style.transform = "translateY(-2px)"}
               onMouseLeave={(e) => e.currentTarget.style.transform = "translateY(0)"}
-              onClick={() => navigate('/products')} // Assuming route
+              onClick={() => navigate('/browse?tab=Products')} // Assuming route
             >
               <ShoppingCart size={20} />
               Buy Essentials
@@ -248,7 +248,7 @@ const Ads = () => {
             
             <button 
               style={styles.iconBtn}
-              onClick={() => navigate('/all-categories')}
+              onClick={() => navigate('/browse?tab=Products')}
             >
               <ArrowRight size={24} />
             </button>
@@ -256,7 +256,7 @@ const Ads = () => {
           
           <div style={styles.verification}>
             <CheckCircle size={16} color="#22c55e" fill="#22c55e" />
-            <span style={{color: "#22c55e", display: "flex", alignItems: "center", gap: "6px"}}>Verified with Basic ID / Aadhar verification</span>
+            <span style={{color: "#22c55e", display: "flex", alignItems: "center", gap: "6px"}}>Verification with email id</span>
           </div>
         </div>
 

@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 import path from "path";
 import { fileURLToPath } from "node:url";
 
@@ -16,30 +17,66 @@ export default defineConfig(({ mode }) => {
     plugins: [
       react(),
       tailwindcss(),
+      nodePolyfills({
+        globals: {
+          Buffer: true,
+          global: true,
+          process: true,
+        },
+      }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
+        devOptions: {
+          enabled: true
+        },
+        manifestFilename: 'manifest.json',
+        includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg', 'pwa-icon.svg', 'pwa-screenshot-mobile.svg', 'pwa-screenshot-wide.svg'],
         manifest: {
-          name: 'My Project',
-          short_name: 'Project',
-          description: 'My awesome project',
+          name: 'CampusCart - Campus Marketplace',
+          short_name: 'CampusCart',
+          description: 'Buy and sell items within your campus securely.',
           theme_color: '#ffffff',
+          background_color: '#ffffff',
+          display: 'standalone',
+          orientation: 'portrait',
+          start_url: '/',
+          scope: '/',
+          id: '/',
           icons: [
             {
-              src: 'pwa-192x192.png',
+              src: '/pwa-icon.svg',
               sizes: '192x192',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
             },
             {
-              src: 'pwa-512x512.png',
+              src: '/pwa-icon.svg',
               sizes: '512x512',
-              type: 'image/png'
+              type: 'image/svg+xml',
+              purpose: 'any maskable'
+            }
+          ],
+          screenshots: [
+            {
+              src: '/pwa-screenshot-mobile.svg',
+              sizes: '750x1334',
+              type: 'image/svg+xml',
+              form_factor: 'narrow',
+              label: 'Mobile Home Screen'
+            },
+            {
+              src: '/pwa-screenshot-wide.svg',
+              sizes: '1280x720',
+              type: 'image/svg+xml',
+              form_factor: 'wide',
+              label: 'Desktop Dashboard'
             }
           ]
         }
       })
     ],
     server: {
+      host: true,
       proxy: {
         "/osm": {
           target: "https://nominatim.openstreetmap.org",
@@ -59,6 +96,11 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           secure: true,
           rewrite: (p) => p.replace(/^\/osrm/, ""),
+        },
+        "/api": {
+          target: "http://localhost:5000",
+          changeOrigin: true,
+          secure: false,
         },
         "/photon": {
           target: "https://photon.komoot.io",

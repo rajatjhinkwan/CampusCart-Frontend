@@ -234,10 +234,10 @@ const Footer = () => {
           <div style={styles.leftSection}>
             <div style={styles.logo}>
               <div style={styles.logoIcon}>📦</div>
-              Campus Cart
+              Society Connect
             </div>
             <p style={styles.text}>
-              Campus Cart is India’s leading marketplace for buying and selling anything from vehicles to furniture, jobs to services. Join millions of users nationwide.
+              Society Connect is Gopeshwar's leading marketplace for buying and selling anything from vehicles to furniture, jobs to services. Join millions of users nationwide.
             </p>
             <div style={styles.socialIcons}>
               {[FaFacebookF, FaTwitter, FaInstagram, FaLinkedinIn, FaYoutube].map((Icon, i) => (
@@ -267,9 +267,9 @@ const Footer = () => {
               <div key={index} style={styles.linkGroup}>
                 <h4 style={styles.linkHeading}>{group.title}</h4>
                 {group.links.map((link, i) => (
-                  <Link 
-                    key={i} 
-                    to={link.path} 
+                  <Link
+                    key={i}
+                    to={link.path}
                     style={styles.link}
                     onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
                     onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
@@ -290,7 +290,7 @@ const Footer = () => {
           </div>
           <div style={styles.subscribeBox}>
             <input type="email" placeholder="Enter your email address" style={styles.input} />
-            <button 
+            <button
               style={styles.sendButton}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#1D4ED8"}
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#2563EB"}
@@ -304,24 +304,24 @@ const Footer = () => {
         <div style={styles.bottomBar}>
           <p>© 2025 Campus Cart. All rights reserved.</p>
           <div style={styles.bottomLinks}>
-            <Link 
-              to="/privacy-policy" 
+            <Link
+              to="/privacy-policy"
               style={styles.bottomLink}
               onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
               onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
             >
               Privacy Policy
             </Link>
-            <Link 
-              to="/terms-of-service" 
+            <Link
+              to="/terms-of-service"
               style={styles.bottomLink}
               onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
               onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}
             >
               Terms of Service
             </Link>
-            <Link 
-              to="/cookie-policy" 
+            <Link
+              to="/cookie-policy"
               style={styles.bottomLink}
               onMouseEnter={(e) => e.currentTarget.style.color = "#2563EB"}
               onMouseLeave={(e) => e.currentTarget.style.color = "#64748B"}

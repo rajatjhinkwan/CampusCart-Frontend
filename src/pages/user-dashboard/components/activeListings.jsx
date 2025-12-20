@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../../lib/axios";
 import { useNavigate } from "react-router-dom";
+import Skeleton from "../../../components/Skeleton";
 // Assuming Lucide icons are available
 import {
   Plus, Eye, MessageCircle, Edit3, Link,
@@ -318,7 +319,37 @@ function Card12() {
           </thead>
           <tbody>
             {loading && (
-              <tr><td style={styles.td} colSpan={5}>Loading your listings…</td></tr>
+              Array(3).fill(0).map((_, i) => (
+                <tr key={i}>
+                   <td style={styles.td}>
+                      <div style={styles.itemWrapper}>
+                         <Skeleton width="56px" height="56px" borderRadius="8px" />
+                         <div>
+                            <Skeleton width="120px" height="20px" style={{ marginBottom: "8px" }} />
+                            <div style={{ display: "flex", gap: "8px" }}>
+                               <Skeleton width="60px" height="16px" />
+                               <Skeleton width="60px" height="16px" />
+                            </div>
+                         </div>
+                      </div>
+                   </td>
+                   <td style={styles.td}><Skeleton width="60px" height="20px" /></td>
+                   <td style={styles.td}>
+                      <div style={{ display: "flex", gap: "8px" }}>
+                         <Skeleton width="50px" height="24px" borderRadius="12px" />
+                         <Skeleton width="50px" height="24px" borderRadius="12px" />
+                      </div>
+                   </td>
+                   <td style={styles.td}><Skeleton width="80px" height="24px" borderRadius="12px" /></td>
+                   <td style={styles.td}>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px" }}>
+                         <Skeleton width="32px" height="32px" borderRadius="8px" />
+                         <Skeleton width="32px" height="32px" borderRadius="8px" />
+                         <Skeleton width="32px" height="32px" borderRadius="8px" />
+                      </div>
+                   </td>
+                </tr>
+              ))
             )}
             {!loading && error && (
               <tr><td style={styles.td} colSpan={5}>{error}</td></tr>

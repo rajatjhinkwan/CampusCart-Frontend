@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#f3f4f6"/>
+  <rect x="100" y="100" width="1080" height="520" rx="20" fill="white" stroke="#d1d5db" stroke-width="4"/>
+  <text x="640" y="360" text-anchor="middle" font-family="Arial" font-size="60" fill="#374151">CampusCart Marketplace</text>
+  <circle cx="640" cy="200" r="50" fill="#3b82f6"/>
+</svg>

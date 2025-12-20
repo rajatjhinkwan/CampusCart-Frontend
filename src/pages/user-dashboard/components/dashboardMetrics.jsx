@@ -1,7 +1,10 @@
 import React from "react";
 import { Package, MessageCircle, Eye, TrendingUp } from "lucide-react";
+import Skeleton from "../../../components/Skeleton";
 
 const DashboardMetrics = ({ metricsData }) => {
+  const loading = metricsData === null;
+
   const defaults = [
     { title: "Total Ads", value: "0", change: "", icon: <Package color="#3b82f6" size={24} />, iconBg: "#e0edff" },
     { title: "Messages", value: "0", change: "", icon: <MessageCircle color="#22c55e" size={24} />, iconBg: "#d1fae5" },
@@ -90,6 +93,22 @@ const DashboardMetrics = ({ metricsData }) => {
     alignItems: "center",
     justifyContent: "center",
   });
+
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        {Array(4).fill(0).map((_, i) => (
+          <div key={i} style={cardStyle}>
+            <div style={{ flex: 1 }}>
+               <Skeleton width="60%" height="20px" style={{ marginBottom: "10px" }} />
+               <Skeleton width="40%" height="32px" />
+            </div>
+            <Skeleton width="48px" height="48px" borderRadius="10px" />
+          </div>
+        ))}
+      </div>
+    );
+  }
 
   // Component rendering
   return (

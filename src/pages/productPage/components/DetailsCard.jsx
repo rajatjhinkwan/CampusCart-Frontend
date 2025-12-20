@@ -6,35 +6,72 @@ const DetailsCard = ({ data }) => {
   const styles = {
     card: {
       background: "#fff",
-      border: "1px solid #ddd",
-      borderRadius: "6px",
-      padding: "20px",
+      borderRadius: "16px",
+      padding: "30px",
+      boxShadow: "0 10px 30px rgba(0,0,0,0.05)",
     },
-    title: { fontSize: "24px", marginBottom: "8px" },
-    sub: { fontSize: "13px", color: "#777", marginBottom: "15px" },
-    label: { fontSize: "13px", color: "#999" },
-    info: { fontSize: "15px", fontWeight: "bold" },
+    title: { 
+      fontSize: "32px", 
+      fontWeight: "700", 
+      marginBottom: "12px", 
+      color: "#1e293b" 
+    },
+    sub: { 
+      fontSize: "16px", 
+      color: "#64748b", 
+      marginBottom: "24px",
+      display: "inline-block",
+      background: "#f1f5f9",
+      padding: "6px 12px",
+      borderRadius: "20px",
+      fontWeight: "500"
+    },
+    section: {
+        marginBottom: "24px",
+    },
+    label: { 
+        fontSize: "14px", 
+        color: "#64748b", 
+        marginBottom: "4px",
+        fontWeight: "500"
+    },
+    info: { 
+        fontSize: "18px", 
+        fontWeight: "600", 
+        color: "#334155" 
+    },
+    descTitle: {
+        fontSize: "20px",
+        fontWeight: "600",
+        color: "#1e293b",
+        marginBottom: "12px"
+    },
+    descText: {
+        fontSize: "16px",
+        lineHeight: 1.7,
+        color: "#475569"
+    }
   };
 
   return (
     <div style={styles.card}>
       <h2 style={styles.title}>{data.title}</h2>
-      <p style={styles.sub}>{data.category}</p>
+      <span style={styles.sub}>{data.category}</span>
 
-      <div>
-        <p style={styles.label}>Location:</p>
+      <div style={styles.section}>
+        <p style={styles.label}>Location</p>
         <p style={styles.info}>{data.location}</p>
       </div>
 
-      <div style={{ marginTop: "15px" }}>
-        <p style={styles.label}>Condition:</p>
+      <div style={styles.section}>
+        <p style={styles.label}>Condition</p>
         <p style={styles.info}>{data.condition}</p>
       </div>
 
       {data.type === "rent" && (
-        <div style={{ marginTop: "15px", padding: "15px", backgroundColor: "#fffbeb", borderRadius: "8px", border: "1px solid #fcd34d" }}>
-          <h3 style={{ fontSize: "16px", marginBottom: "12px", color: "#b45309", fontWeight: "bold" }}>Rental Information</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+        <div style={{ marginTop: "20px", padding: "20px", backgroundColor: "#fff7ed", borderRadius: "12px", border: "1px solid #fed7aa" }}>
+          <h3 style={{ fontSize: "18px", marginBottom: "16px", color: "#9a3412", fontWeight: "700" }}>Rental Information</h3>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
              <div>
                 <p style={styles.label}>Rental Period</p>
                 <p style={styles.info}>{data.rentalPeriod || "Monthly"}</p>
@@ -57,9 +94,9 @@ const DetailsCard = ({ data }) => {
         </div>
       )}
 
-      <div style={{ marginTop: "20px" }}>
-        <h3>Description</h3>
-        <p style={{ fontSize: "14px", lineHeight: 1.6 }}>
+      <div style={{ marginTop: "30px", paddingTop: "30px", borderTop: "1px solid #e2e8f0" }}>
+        <h3 style={styles.descTitle}>Description</h3>
+        <p style={styles.descText}>
           {data.description}
         </p>
       </div>

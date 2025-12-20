@@ -3,7 +3,10 @@ import { io } from "socket.io-client";
 import Navbar from "../../components/navbar.jsx";
 import { useUserStore } from "../../store/userStore.js";
 import { format } from "date-fns";
-import { Send, ArrowLeft, MoreVertical, Image as ImageIcon, Tag, Check, X, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+import { Send, ArrowLeft, MoreVertical, Image as ImageIcon, Tag, Check, CheckCheck, X, Search, Edit2, Trash2, Phone, Video as VideoIcon, Mic, MicOff, VideoOff } from "lucide-react";
+import SimplePeer from "simple-peer";
 import { styles } from "./styles";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -43,6 +46,51 @@ export default function MessagesPage() {
     const [attachmentUploadPct, setAttachmentUploadPct] = useState(0);
     const fileInputRef = useRef(null);
     const [dealPopup, setDealPopup] = useState(null);
+
+    // Message Edit State
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editContent, setEditContent] = useState("");
+    const [hoveredMessageId, setHoveredMessageId] = useState(null);
+
+    // Call State
+    const [stream, setStream] = useState(null);
+    const [receivingCall, setReceivingCall] = useState(false);
+    const [caller, setCaller] = useState("");
+    const [callerSignal, setCallerSignal] = useState(null);
+    const [callAccepted, setCallAccepted] = useState(false);
+    const [callEnded, setCallEnded] = useState(false);
+    const [name, setName] = useState("");
+    const [isVideoCall, setIsVideoCall] = useState(false);
+    const myVideo = useRef();
+    const userVideo = useRef();
+    const connectionRef = useRef();
+    const [callModalOpen, setCallModalOpen] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [isCameraOff, setIsCameraOff] = useState(false);
+
+    // Audio Refs
+    const ringtoneRef = useRef(new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"));
+    const callingSoundRef = useRef(new Audio("https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3"));
+
+    useEffect(() => {
+        // Configure audio
+        ringtoneRef.current.loop = true;
+        callingSoundRef.current.loop = true;
+        
+        return () => {
+            ringtoneRef.current.pause();
+            callingSoundRef.current.pause();
+            ringtoneRef.current.currentTime = 0;
+            callingSoundRef.current.currentTime = 0;
+        };
+    }, []);
+
+    const stopSounds = () => {
+        ringtoneRef.current.pause();
+        callingSoundRef.current.pause();
+        ringtoneRef.current.currentTime = 0;
+        callingSoundRef.current.currentTime = 0;
+    };
 
     useEffect(() => {
         const handleResize = () => setWindowWidth(window.innerWidth);
@@ -177,6 +225,20 @@ export default function MessagesPage() {
                 }
             });
 
+            newSocket.on('messageUpdated', () => {
+                const store = useUserStore.getState();
+                if (store.selectedConversation) {
+                    store.fetchMessages?.(store.selectedConversation);
+                }
+            });
+
+            newSocket.on('messageDeleted', () => {
+                const store = useUserStore.getState();
+                if (store.selectedConversation) {
+                    store.fetchMessages?.(store.selectedConversation);
+                }
+            });
+
             setSocket(newSocket);
 
             return () => {
@@ -199,6 +261,193 @@ export default function MessagesPage() {
             }
         };
     }, [socket, selectedConversation]);
+
+    // Call Socket Listeners
+    useEffect(() => {
+        if (!socket) return;
+
+        socket.on("incomingCall", ({ from, name: callerName, signal, isVideo }) => {
+            setReceivingCall(true);
+            setCaller(from);
+            setName(callerName);
+            setCallerSignal(signal);
+            setIsVideoCall(isVideo);
+            setCallModalOpen(true);
+        });
+
+        socket.on("callAccepted", ({ signal }) => {
+            setCallAccepted(true);
+            connectionRef.current?.signal(signal);
+        });
+
+        socket.on("callEnded", () => {
+            setCallEnded(true);
+            setCallAccepted(false);
+            setReceivingCall(false);
+            setCallModalOpen(false);
+            connectionRef.current?.destroy();
+            setStream((currentStream) => {
+                currentStream?.getTracks().forEach(track => track.stop());
+                return null;
+            });
+            window.location.reload(); 
+        });
+
+        socket.on("callRejected", () => {
+             alert("User is busy or rejected the call");
+             setCallModalOpen(false);
+             setCallAccepted(false);
+             setReceivingCall(false);
+             connectionRef.current?.destroy();
+             setStream((currentStream) => {
+                currentStream?.getTracks().forEach(track => track.stop());
+                return null;
+            });
+        });
+
+        return () => {
+            socket.off("incomingCall");
+            socket.off("callAccepted");
+            socket.off("callEnded");
+            socket.off("callRejected");
+        };
+    }, [socket]);
+
+    const callUser = (id, video = false) => {
+        setIsVideoCall(video);
+        setCallModalOpen(true);
+        setIsMuted(false);
+        setIsCameraOff(false);
+        
+        // Play calling sound
+        try {
+            callingSoundRef.current.play().catch(e => console.log("Audio play failed", e));
+        } catch (e) {
+            console.error("Error playing calling sound:", e);
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: video, audio: true })
+            .then((currentStream) => {
+                setStream(currentStream);
+                if (myVideo.current) {
+                    myVideo.current.srcObject = currentStream;
+                }
+
+                const peer = new SimplePeer({
+                    initiator: true,
+                    trickle: false,
+                    stream: currentStream,
+                    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+                });
+
+                peer.on("signal", (data) => {
+                    socket.emit("callUser", {
+                        userToCall: id,
+                        signalData: data,
+                        from: user._id,
+                        name: user.name,
+                        isVideo: video
+                    });
+                });
+
+                peer.on("stream", (userStream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = userStream;
+                    }
+                });
+
+                connectionRef.current = peer;
+            })
+            .catch((err) => {
+                console.error("Error accessing media devices:", err);
+                alert("Could not access camera/microphone. Please allow permissions.");
+                setCallModalOpen(false);
+                stopSounds();
+            });
+    };
+
+    const answerCall = () => {
+        setCallAccepted(true);
+        setIsMuted(false);
+        setIsCameraOff(false);
+
+        navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true })
+            .then((currentStream) => {
+                setStream(currentStream);
+                if (myVideo.current) {
+                    myVideo.current.srcObject = currentStream;
+                }
+
+                const peer = new SimplePeer({
+                    initiator: false,
+                    trickle: false,
+                    stream: currentStream,
+                    config: { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] }
+                });
+
+                peer.on("signal", (data) => {
+                    socket.emit("answerCall", { signal: data, to: caller });
+                });
+
+                peer.on("stream", (userStream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = userStream;
+                    }
+                });
+
+                peer.signal(callerSignal);
+                connectionRef.current = peer;
+            })
+            .catch((err) => {
+                console.error("Error accessing media devices:", err);
+                alert("Could not access camera/microphone.");
+                // Clean up if error
+                setCallModalOpen(false);
+                setCallAccepted(false);
+                setReceivingCall(false);
+            });
+    };
+
+    const leaveCall = () => {
+        setCallEnded(true);
+        stopSounds();
+        connectionRef.current?.destroy();
+        if (stream) {
+            stream.getTracks().forEach(track => track.stop());
+            setStream(null);
+        }
+        setCallModalOpen(false);
+        setCallAccepted(false);
+        setReceivingCall(false);
+        
+        // Notify other user
+        const otherId = receivingCall ? caller : (activeOther?._id || activeOther?.id);
+        if (otherId) {
+            socket.emit("endCall", { to: otherId });
+        }
+        window.location.reload(); 
+    };
+
+    const toggleMute = () => {
+        if (stream) {
+            const audioTrack = stream.getAudioTracks()[0];
+            if (audioTrack) {
+                audioTrack.enabled = !audioTrack.enabled;
+                setIsMuted(!audioTrack.enabled);
+            }
+        }
+    };
+
+    const toggleCamera = () => {
+        if (stream && isVideoCall) {
+            const videoTrack = stream.getVideoTracks()[0];
+            if (videoTrack) {
+                videoTrack.enabled = !videoTrack.enabled;
+                setIsCameraOff(!videoTrack.enabled);
+            }
+        }
+    };
+
 
     useEffect(() => {
         let mounted = true;
@@ -230,9 +479,22 @@ export default function MessagesPage() {
         setNewMessage("");
     }, [selectedConversation]);
     
+    const latestOffer = useMemo(() => {
+        if (!messages.messages) return null;
+        let max = 0;
+        for (const m of messages.messages) {
+             const offerMatch = (m.content || "").match(/(?:offer|price|deal).*(?:₹|rs\.?|inr)\s*([\d,]+)/i) || (m.content || "").match(/offer.*(?:₹|rs\.?|inr)\s*([\d,]+)/i);
+             const amount = offerMatch ? parseInt(offerMatch[1].replace(/,/g, ''), 10) : 0;
+             if (amount > max) max = amount;
+        }
+        return max || null;
+    }, [messages]);
+
     useEffect(() => {
         const target = basePrice ? Number(basePrice) : null;
         if (!target) return;
+        
+        // Check if deal conditions met
         const list = messages.messages || [];
         for (const m of list) {
             const accept = /accept.*offer/i.test(m.content || "");
@@ -248,6 +510,47 @@ export default function MessagesPage() {
             }
         }
     }, [messages, basePrice]);
+
+    const handleEditClick = (msg) => {
+        setEditingMessageId(msg._id);
+        setEditContent(msg.content);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingMessageId(null);
+        setEditContent("");
+    };
+
+    const handleSaveEdit = async (msgId) => {
+        const msg = messages.messages?.find(m => m._id === msgId);
+        const hasAttachments = msg?.attachments?.length > 0;
+        
+        if (!editContent.trim() && !hasAttachments) return;
+        
+        try {
+            await axios.put(`${API}/api/messages/${msgId}`, 
+                { content: editContent }, 
+                { headers: { Authorization: `Bearer ${accessToken}` } }
+            );
+            setEditingMessageId(null);
+            setEditContent("");
+        } catch (error) {
+            console.error("Failed to edit message", error);
+            alert("Failed to edit message");
+        }
+    };
+
+    const handleDeleteMessage = async (msgId) => {
+        if (!window.confirm("Are you sure you want to delete this message?")) return;
+        try {
+            await axios.delete(`${API}/api/messages/${msgId}`, {
+                headers: { Authorization: `Bearer ${accessToken}` }
+            });
+        } catch (error) {
+            console.error("Failed to delete message", error);
+            alert("Failed to delete message");
+        }
+    };
 
     const handleSendMessage = async (e) => {
         e?.preventDefault();
@@ -364,6 +667,85 @@ export default function MessagesPage() {
         );
     }
 
+    // Product Context Bar
+    const ProductContextBar = ({ item, price, currency, currentOffer, currentUser }) => {
+        if (!item) return null;
+        
+        const target = price ? Number(price) : null;
+        const offer = currentOffer ? Number(currentOffer) : 0;
+        const progress = target ? Math.min(100, Math.round((offer / target) * 100)) : 0;
+
+        const isOwner = currentUser && item.original && (
+            (item.original.seller && (item.original.seller._id === currentUser._id || item.original.seller === currentUser._id)) ||
+            (item.original.owner && (item.original.owner._id === currentUser._id || item.original.owner === currentUser._id))
+        );
+
+        const productId = item.original?._id || item.original?.id;
+
+        return (
+            <div style={{
+                padding: '0.75rem 1rem',
+                backgroundColor: '#f8fafc',
+                borderBottom: '1px solid #e2e8f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem'
+            }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div style={{ width: '3rem', height: '3rem', borderRadius: '0.5rem', overflow: 'hidden', backgroundColor: '#e2e8f0', flexShrink: 0 }}>
+                        {item.image ? (
+                            <img src={item.image.startsWith('http') || item.image.startsWith('data:') ? item.image : `${API}${item.image}`} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8' }}>
+                                <ImageIcon size={20} />
+                            </div>
+                        )}
+                    </div>
+                    <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1e293b' }}>{item.title}</h3>
+                            {isOwner && productId && (
+                                <Link 
+                                    to={`/product/${productId}`}
+                                    title="View/Edit Product"
+                                    style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}
+                                >
+                                    <Edit2 size={14} />
+                                </Link>
+                            )}
+                        </div>
+                        <p style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            Asking Price: <span style={{ fontWeight: '600', color: '#2563eb' }}>{currency} {price ? Number(price).toLocaleString() : 'N/A'}</span>
+                        </p>
+                    </div>
+                </div>
+                {/* Negotiation Progress - Only show if base price exists */}
+                {price && (
+                    <div style={{ flex: 1, maxWidth: '200px', display: isMobile ? 'none' : 'block' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginBottom: '0.25rem', color: '#64748b' }}>
+                            <span>Negotiation</span>
+                            <span>{progress}% of Target</span>
+                        </div>
+                        <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                             <div style={{ 
+                                 width: `${progress}%`, 
+                                 height: '100%', 
+                                 background: progress >= 100 ? '#22c55e' : 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                                 transition: 'width 0.5s ease'
+                             }} />
+                        </div>
+                        {currentOffer && (
+                             <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#3b82f6', marginTop: '2px' }}>
+                                 Offer: {currency} {Number(currentOffer).toLocaleString()}
+                             </div>
+                        )}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div style={styles.container}>
             <Navbar />
@@ -416,21 +798,36 @@ export default function MessagesPage() {
                                         if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
-                                    <div style={{
-                                        ...styles.avatar,
-                                        background: isActive ? '#2563eb' : 'linear-gradient(to bottom right, #60a5fa, #2563eb)'
-                                    }}>
+                                    <Link 
+                                        to={`/profile/${otherParticipant?._id}`}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{
+                                            ...styles.avatar,
+                                            background: isActive ? '#2563eb' : 'linear-gradient(to bottom right, #60a5fa, #2563eb)',
+                                            textDecoration: 'none',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: '#fff'
+                                        }}
+                                    >
                                         {otherParticipant?.avatar ? (
                                             <img src={otherParticipant.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
                                         ) : (
                                             getInitials(otherParticipant?.name)
                                         )}
-                                    </div>
+                                    </Link>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.25rem' }}>
-                                            <h3 style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isActive ? '#1e3a8a' : '#1f2937' }}>
-                                                {otherParticipant?.name || 'Unknown'}
-                                            </h3>
+                                            <Link 
+                                                to={`/profile/${otherParticipant?._id}`}
+                                                onClick={(e) => e.stopPropagation()}
+                                                style={{ textDecoration: 'none', color: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
+                                            >
+                                                <h3 style={{ fontWeight: '600', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: isActive ? '#1e3a8a' : '#1f2937' }}>
+                                                    {otherParticipant?.name || 'Unknown'}
+                                                </h3>
+                                            </Link>
                                             <span style={{ fontSize: '0.75rem', color: isActive ? '#3b82f6' : '#9ca3af' }}>
                                                 {conversation.lastMessage?.createdAt && format(new Date(conversation.lastMessage.createdAt), 'p')}
                                             </span>
@@ -489,32 +886,50 @@ export default function MessagesPage() {
                                         <ArrowLeft style={{ width: '1.25rem', height: '1.25rem' }} />
                                     </button>
                                     
-                                    <div style={{ position: 'relative' }}>
-                                        <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: 'linear-gradient(to bottom right, #6366f1, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '600' }}>
-                                            {activeOther?.avatar ? (
-                                                <img src={activeOther.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
-                                            ) : (
-                                                getInitials(activeOther?.name)
-                                            )}
+                                    <Link to={`/profile/${activeOther?._id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '1rem', color: 'inherit' }}>
+                                        <div style={{ position: 'relative' }}>
+                                            <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: 'linear-gradient(to bottom right, #6366f1, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '600' }}>
+                                                {activeOther?.avatar ? (
+                                                    <img src={activeOther.avatar} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                                                ) : (
+                                                    getInitials(activeOther?.name)
+                                                )}
+                                            </div>
+                                            <div style={{ position: 'absolute', bottom: 0, right: 0, width: '0.75rem', height: '0.75rem', backgroundColor: '#22c55e', border: '2px solid #fff', borderRadius: '50%' }}></div>
                                         </div>
-                                        <div style={{ position: 'absolute', bottom: 0, right: 0, width: '0.75rem', height: '0.75rem', backgroundColor: '#22c55e', border: '2px solid #fff', borderRadius: '50%' }}></div>
-                                    </div>
-                                    
-                                    <div>
-                                        <h2 style={{ fontWeight: '700', color: '#1f2937' }}>{activeOther?.name || 'Unknown User'}</h2>
-                                        {activeItem && (
-                                            <p style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                                                <span>Active on:</span>
-                                                <span style={{ fontWeight: '500', color: '#2563eb', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '150px' }}>{itemTitle}</span>
-                                                {basePrice && <span style={{ color: '#9ca3af' }}>• {baseCurrency} {Number(basePrice).toLocaleString()}</span>}
-                                            </p>
-                                        )}
-                                    </div>
+                                        
+                                        <div>
+                                            <h2 style={{ fontWeight: '700', color: '#1f2937' }}>{activeOther?.name || 'Unknown User'}</h2>
+                                            <p style={{ fontSize: '0.75rem', color: '#16a34a' }}>Online</p>
+                                        </div>
+                                    </Link>
                                 </div>
-                                <button style={{ padding: '0.5rem', borderRadius: '50%', color: '#9ca3af', border: 'none', background: 'transparent', cursor: 'pointer' }}>
-                                    <MoreVertical style={{ width: '1.25rem', height: '1.25rem' }} />
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                                    <button onClick={() => callUser(activeOther?._id || activeOther?.id, false)} title="Voice Call" style={{ padding: '0.5rem', borderRadius: '50%', color: '#3b82f6', border: 'none', background: '#eff6ff', cursor: 'pointer' }}>
+                                        <Phone style={{ width: '1.25rem', height: '1.25rem' }} />
+                                    </button>
+                                    <button onClick={() => callUser(activeOther?._id || activeOther?.id, true)} title="Video Call" style={{ padding: '0.5rem', borderRadius: '50%', color: '#3b82f6', border: 'none', background: '#eff6ff', cursor: 'pointer' }}>
+                                        <VideoIcon style={{ width: '1.25rem', height: '1.25rem' }} />
+                                    </button>
+                                    <button style={{ padding: '0.5rem', borderRadius: '50%', color: '#9ca3af', border: 'none', background: 'transparent', cursor: 'pointer' }}>
+                                        <MoreVertical style={{ width: '1.25rem', height: '1.25rem' }} />
+                                    </button>
+                                </div>
                             </div>
+
+                            {/* Product Context Bar */}
+                            {activeItem && (
+                                <ProductContextBar 
+                                    item={{
+                                        title: itemTitle,
+                                        image: getItemDetails(activeItem).image,
+                                        original: activeItem
+                                    }}
+                                    price={itemPrice}
+                                    currency={baseCurrency}
+                                    currentUser={user}
+                                />
+                            )}
 
                             {/* Messages List */}
                             <div style={styles.messagesList}>
@@ -531,8 +946,16 @@ export default function MessagesPage() {
                                     // Normalize target price
                                     const target = basePrice ? Number(basePrice) : null;
 
+                                    const isHovered = hoveredMessageId === msg._id;
+                                    const isEditing = editingMessageId === msg._id;
+
                                     return (
-                                        <div key={idx} style={{ ...styles.messageRow, justifyContent: fromMe ? 'flex-end' : 'flex-start' }}>
+                                        <div 
+                                            key={idx} 
+                                            style={{ ...styles.messageRow, justifyContent: fromMe ? 'flex-end' : 'flex-start' }}
+                                            onMouseEnter={() => setHoveredMessageId(msg._id)}
+                                            onMouseLeave={() => setHoveredMessageId(null)}
+                                        >
                                             <div style={{ display: 'flex', flexDirection: 'column', maxWidth: isMobile ? '85%' : '70%', alignItems: fromMe ? 'flex-end' : 'flex-start' }}>
                                                 <div style={{
                                                     ...styles.messageBubble,
@@ -550,7 +973,32 @@ export default function MessagesPage() {
                                                         </div>
                                                     )}
 
-                                                    <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                                                    {isEditing ? (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}>
+                                                            <textarea 
+                                                                value={editContent}
+                                                                onChange={(e) => setEditContent(e.target.value)}
+                                                                style={{ 
+                                                                    padding: '0.5rem', 
+                                                                    borderRadius: '0.25rem', 
+                                                                    border: '1px solid #d1d5db',
+                                                                    fontSize: '0.875rem',
+                                                                    color: '#1f2937',
+                                                                    width: '100%',
+                                                                    resize: 'none',
+                                                                    fontFamily: 'inherit'
+                                                                }}
+                                                                rows={3}
+                                                                autoFocus
+                                                            />
+                                                            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                                                                <button onClick={handleCancelEdit} style={{ fontSize: '0.75rem', color: '#6b7280', background: 'none', border: 'none', cursor: 'pointer' }}>Cancel</button>
+                                                                <button onClick={() => handleSaveEdit(msg._id)} style={{ fontSize: '0.75rem', color: '#2563eb', fontWeight: '600', background: 'none', border: 'none', cursor: 'pointer' }}>Save</button>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                                                    )}
 
                                                     {/* Offer Actions for Receiver */}
                                                     {isOffer && !fromMe && (
@@ -582,23 +1030,50 @@ export default function MessagesPage() {
                                                     )}
                                                     
                                                     {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
-                                                        <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.25rem' }}>
-                                                            {msg.attachments.map((url, i) => (
-                                                                <div key={i} style={{ width: '100%', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6' }}>
-                                                                    <img 
-                                                                        src={typeof url === 'string' ? url : url.url} 
-                                                                        alt="Attachment" 
-                                                                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
-                                                                        referrerPolicy="no-referrer"
-                                                                    />
-                                                                </div>
-                                                            ))}
+                                                        <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: msg.attachments.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.25rem', maxWidth: '300px' }}>
+                                                            {msg.attachments.map((url, i) => {
+                                                                const src = typeof url === 'string' ? url : url.url;
+                                                                const fullSrc = src.startsWith('http') || src.startsWith('data:') ? src : `${API}${src}`;
+                                                                return (
+                                                                    <div key={i} 
+                                                                        onClick={() => window.open(fullSrc, '_blank')}
+                                                                        style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6', cursor: 'pointer' }}
+                                                                    >
+                                                                        <img 
+                                                                            src={fullSrc}
+                                                                            alt="Attachment" 
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                                                                            referrerPolicy="no-referrer"
+                                                                        />
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     )}
                                                 </div>
-                                                <span style={{ fontSize: '0.625rem', color: '#9ca3af', marginTop: '0.25rem', padding: '0 0.25rem' }}>
-                                                    {msg.createdAt && format(new Date(msg.createdAt), 'p')}
-                                                </span>
+                                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.25rem', marginTop: '0.25rem', padding: '0 0.25rem' }}>
+                                                    <span style={{ fontSize: '0.65rem', color: '#9ca3af' }}>
+                                                        {msg.createdAt && format(new Date(msg.createdAt), 'p')}
+                                                    </span>
+                                                    {fromMe && (
+                                                        <>
+                                                            {msg.read || msg.isRead ? <CheckCheck size={16} color="#3b82f6" /> : <CheckCheck size={16} color="#9ca3af" />}
+                                                            
+                                                            {isHovered && !isEditing && (
+                                                                <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
+                                                                    {!isOffer && (
+                                                                        <button onClick={() => handleEditClick(msg)} style={{ padding: '0', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex' }} title="Edit">
+                                                                            <Edit2 size={12} />
+                                                                        </button>
+                                                                    )}
+                                                                    <button onClick={() => handleDeleteMessage(msg._id)} style={{ padding: '0', background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', display: 'flex' }} title="Delete">
+                                                                        <Trash2 size={12} />
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     );
@@ -624,15 +1099,8 @@ export default function MessagesPage() {
                                 </div>
 
                                 <form onSubmit={handleSendMessage} style={styles.inputForm}>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsOfferMode(!isOfferMode)}
-                                        style={{ padding: '0.5rem', borderRadius: '0.75rem', transition: 'all 0.2s', flexShrink: 0, backgroundColor: isOfferMode ? '#fef3c7' : 'transparent', color: isOfferMode ? '#b45309' : '#6b7280', border: 'none', cursor: 'pointer' }}
-                                        title="Make an Offer"
-                                    >
-                                        <Tag style={{ width: '1.25rem', height: '1.25rem' }} />
-                                    </button>
-
+                                    {/* Make Offer Button Removed as per request */}
+                                    
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         {isOfferMode ? (
                                             <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 0.5rem' }}>
@@ -727,6 +1195,97 @@ export default function MessagesPage() {
                     <button onClick={() => setDealPopup(null)} style={{ marginLeft: '0.5rem', background: 'transparent', border: 'none', color: '#166534', cursor: 'pointer' }}>
                         <X style={{ width: '1rem', height: '1rem' }} />
                     </button>
+                </div>
+            )}
+
+            {/* Call Modal */}
+            {callModalOpen && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    zIndex: 100,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#1f2937',
+                        padding: '2rem',
+                        borderRadius: '1rem',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '1.5rem',
+                        maxWidth: '90%',
+                        width: '400px',
+                        color: 'white'
+                    }}>
+                        {/* Video Area */}
+                        <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', backgroundColor: '#000', borderRadius: '0.5rem', overflow: 'hidden' }}>
+                            {callAccepted && !callEnded && (
+                                <video playsInline ref={userVideo} autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            )}
+                            
+                            {/* My Video (Picture in Picture) */}
+                            {stream && (
+                                <video 
+                                    playsInline 
+                                    muted 
+                                    ref={myVideo} 
+                                    autoPlay 
+                                    style={{ 
+                                        position: 'absolute', 
+                                        bottom: '10px', 
+                                        right: '10px', 
+                                        width: '100px', 
+                                        borderRadius: '0.5rem', 
+                                        border: '2px solid white',
+                                        display: isVideoCall ? 'block' : 'none'
+                                    }} 
+                                />
+                            )}
+                            
+                            {!callAccepted && (
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
+                                    <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', overflow: 'hidden', border: '4px solid #3b82f6' }}>
+                                        {/* Avatar placeholder */}
+                                        <div style={{ width: '100%', height: '100%', backgroundColor: '#374151', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                                            {name ? name[0] : (activeOther?.name?.[0] || 'U')}
+                                        </div>
+                                    </div>
+                                    <p>{receivingCall ? `${name} is calling...` : `Calling ${activeOther?.name || 'User'}...`}</p>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Controls */}
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button onClick={toggleMute} style={{ padding: '1rem', borderRadius: '50%', backgroundColor: isMuted ? '#ef4444' : '#374151', color: 'white', border: 'none', cursor: 'pointer' }}>
+                                {isMuted ? <MicOff /> : <Mic />}
+                            </button>
+                            {isVideoCall && (
+                                <button onClick={toggleCamera} style={{ padding: '1rem', borderRadius: '50%', backgroundColor: isCameraOff ? '#ef4444' : '#374151', color: 'white', border: 'none', cursor: 'pointer' }}>
+                                    {isCameraOff ? <VideoOff /> : <VideoIcon />}
+                                </button>
+                            )}
+                            <button onClick={leaveCall} style={{ padding: '1rem', borderRadius: '50%', backgroundColor: '#ef4444', color: 'white', border: 'none', cursor: 'pointer' }}>
+                                <Phone style={{ transform: 'rotate(135deg)' }} />
+                            </button>
+                        </div>
+                        
+                        {receivingCall && !callAccepted && (
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button onClick={answerCall} style={{ backgroundColor: '#22c55e', color: 'white', padding: '0.75rem 2rem', borderRadius: '2rem', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                                    Answer
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 </div>
             )}
         </div>

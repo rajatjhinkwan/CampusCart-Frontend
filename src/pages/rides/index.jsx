@@ -7,6 +7,7 @@ import io from 'socket.io-client';
 import axios from '../../lib/axios';
 import toast from 'react-hot-toast';
 import { useUserStore } from '../../store/userStore';
+import { useNavigate } from 'react-router-dom';
 
 const Rides = () => {
   const [currentRide, setCurrentRide] = useState(null);
@@ -21,6 +22,8 @@ const Rides = () => {
   const [selectedRide, setSelectedRide] = useState(null);
   const [showSameInstitution, setShowSameInstitution] = useState(false);
 
+  const navigate = useNavigate();
+
   useEffect(() => {
     const token = useUserStore.getState().accessToken;
     const apiBase = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -32,6 +35,9 @@ const Rides = () => {
     newSocket.on('rideAssigned', (data) => {
       console.log('Ride assigned:', data);
       setAcceptedRide(data);
+      if (data?.rideId) {
+        navigate(`/rides/live/${data.rideId}`);
+      }
     });
 
     newSocket.on('rideStarted', (data) => {
@@ -55,7 +61,46 @@ const Rides = () => {
     return () => {
       newSocket.disconnect();
     };
-  }, []);
+  }, [navigate]);
+
+  // Restore active ride state on mount
+  useEffect(() => {
+    const fetchActiveRides = async () => {
+      if (!user?._id) return;
+      try {
+        const { data } = await axios.get(`/api/rides/user/${user._id}`);
+        // Find the most recent active ride
+        const activeRide = data.rides.find(r => 
+          ['OPEN', 'ASSIGNED', 'ON_ROUTE'].includes(r.status)
+        );
+        
+        if (activeRide) {
+          console.log('Restored active ride:', activeRide);
+          
+          // If I am the passenger
+          if (activeRide.passengerId._id === user._id) {
+            setCurrentRide(activeRide);
+            setPreviewFrom(activeRide.from);
+            setPreviewTo(activeRide.to);
+          }
+          
+          // If the ride is already assigned (whether I am passenger or driver)
+          if (['ASSIGNED', 'ON_ROUTE'].includes(activeRide.status)) {
+            setAcceptedRide(activeRide);
+            // If I am the driver, also set preview
+            if (activeRide.assignedDriverId?._id === user._id) {
+               setPreviewFrom(activeRide.from);
+               setPreviewTo(activeRide.to);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Failed to restore active ride:', err);
+      }
+    };
+
+    fetchActiveRides();
+  }, [user?._id]);
 
   // Removed personal rides section to simplify UI per design
 
@@ -93,6 +138,9 @@ const Rides = () => {
   const handleRideAccepted = (ride) => {
     setAcceptedRide(ride);
     console.log('Ride accepted:', ride);
+    if (ride?._id) {
+      navigate(`/rides/live/${ride._id}`);
+    }
   };
 
   const styles = {
@@ -313,7 +361,7 @@ const Rides = () => {
           style={styles.ctaButton}
           onClick={() => setShowRequestModal(true)}
         >
-          Offer or Request a Ride
+          Request a Ride
         </button>
 
         {showRequestModal && (
@@ -331,6 +379,39 @@ const Rides = () => {
                 onLocationsChange={handleLocationsChange}
               />
             </div>
+          </div>
+        )}
+
+        {/* Current Ride Status - Searching */}
+        {!acceptedRide && currentRide && (
+          <div style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            backgroundColor: '#3b82f6',
+            color: 'white',
+            padding: '16px',
+            borderRadius: '8px',
+            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+            maxWidth: '300px'
+          }}>
+            <h3 style={{ fontWeight: 'bold', marginBottom: '8px' }}>Requesting Ride...</h3>
+            <p style={{ fontSize: '14px' }}>
+              Your ride request is live.
+            </p>
+            <p style={{ fontSize: '14px', marginTop: '4px' }}>
+              From: {currentRide.from?.address}
+            </p>
+            <div style={{ marginTop: '12px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid white', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+                <span style={{ fontSize: '13px', fontWeight: '500' }}>Waiting for drivers</span>
+            </div>
+            <style>{`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}</style>
           </div>
         )}
 

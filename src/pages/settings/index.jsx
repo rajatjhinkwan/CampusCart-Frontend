@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "../../lib/axios";
 import { styles } from "./styles";
 import { useUserStore } from "../../store/userStore";
+import Skeleton from "../../components/Skeleton";
 
 import Sidebar from "./components/Sidebar";
 

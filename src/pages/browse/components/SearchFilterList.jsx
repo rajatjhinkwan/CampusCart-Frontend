@@ -1,6 +1,7 @@
 import React from "react";
 import ProductCard from "../../../components/product/productCard";
 import JobCard from "../../../components/product/JobCard";
+import Skeleton from "../../../components/Skeleton";
 
 // ------------------------------
 // UNIVERSAL LOCATION NORMALIZER
@@ -58,7 +59,22 @@ const SearchFilterList = ({ products, loading, error, type = "Products" }) => {
     },
   };
 
-  if (loading) return <div style={styles.noResults}>Loading {type.toLowerCase()}...</div>;
+  if (loading) {
+    return (
+      <div style={styles.gridContainer}>
+        {Array(8).fill(0).map((_, i) => (
+           <div key={i} style={{ width: '100%', height: '350px', backgroundColor: '#fff', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+              <Skeleton width="100%" height="200px" />
+              <div style={{ padding: '16px' }}>
+                <Skeleton width="80%" height="24px" style={{ marginBottom: '8px' }} />
+                <Skeleton width="40%" height="20px" style={{ marginBottom: '16px' }} />
+                <Skeleton width="100%" height="36px" borderRadius="18px" />
+              </div>
+           </div>
+        ))}
+      </div>
+    );
+  }
   if (error) return <div style={styles.noResults}>{error}</div>;
 
   const formatPrice = (p) => {

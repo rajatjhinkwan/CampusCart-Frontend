@@ -73,6 +73,29 @@ const UserDashboardIndex = () => {
           <SavedSearches />
           <AccountStatus />
         </div>
+
+        {/* Dashboard Guide */}
+        <div style={{ marginTop: 24, padding: 16, backgroundColor: '#f0f9ff', borderRadius: 8, border: '1px solid #bae6fd', width: '100%', maxWidth: '800px' }}>
+            <h4 style={{ fontSize: 14, fontWeight: 600, color: '#0369a1', marginBottom: 8 }}>Dashboard Guide</h4>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', fontSize: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#e0edff' }}></span>
+                    <span>Total Ads</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#d1fae5' }}></span>
+                    <span>Messages</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#f3e8ff' }}></span>
+                    <span>Profile Views</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: '#dcfce7' }}></span>
+                    <span>Successful Sales</span>
+                </div>
+            </div>
+        </div>
       </div>
     </div>
   );

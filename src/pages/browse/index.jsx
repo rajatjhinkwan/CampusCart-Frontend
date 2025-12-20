@@ -25,6 +25,7 @@ const Index = () => {
     setFilters({});
     setSearchText("");
     setSearchLocation("");
+    setItems([]);
   }, [activeTab]);
 
   useEffect(() => {
@@ -193,21 +194,21 @@ const Index = () => {
       else if (label === "Available Now") setFilters({ ...filters, availableFrom: new Date().toISOString().slice(0, 10) });
       else setFilters({ ...filters, roomType: label });
     } else if (activeTab === "Services") {
-      setFilters({ ...filters, query: label });
+      setFilters({ ...filters, search: label });
     } else if (activeTab === "Jobs") {
-      setFilters({ ...filters, query: label });
+      setFilters({ ...filters, search: label });
     }
   };
 
   const onSearch = () => {
     if (activeTab === "Products") {
-      setFilters({ ...filters, query: searchText, location: searchLocation || undefined, sort: "createdAt_desc" });
+      setFilters({ ...filters, q: searchText, location: searchLocation || undefined, sort: "createdAt_desc" });
     } else if (activeTab === "Rooms") {
-      setFilters({ ...filters, query: searchText, city: searchLocation || undefined, sort: "createdAt_desc" });
+      setFilters({ ...filters, q: searchText, city: searchLocation || undefined, sort: "createdAt_desc" });
     } else if (activeTab === "Services") {
-      setFilters({ ...filters, query: searchText, city: searchLocation || undefined, sort: "createdAt_desc" });
+      setFilters({ ...filters, search: searchText, city: searchLocation || undefined, sort: "createdAt_desc" });
     } else if (activeTab === "Jobs") {
-      setFilters({ ...filters, query: searchText, location: searchLocation || undefined, sort: "createdAt_desc" });
+      setFilters({ ...filters, search: searchText, location: searchLocation || undefined, sort: "createdAt_desc" });
     }
   };
 

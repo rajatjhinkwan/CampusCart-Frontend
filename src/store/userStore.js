@@ -18,10 +18,27 @@ export const useUserStore = create(
             // Helper to reset error
             clearError: () => set({ error: null }),
 
-            signup: async ({ name, email, password, role }) => {
+            signup: async ({ name, email, password, role, location }) => {
                 set({ loading: true, error: null });
                 try {
-                    const res = await axios.post('/api/auth/signup', { name, email, password, role });
+                    const res = await axios.post('/api/auth/signup', { name, email, password, role, location });
+                    // Signup now sends OTP, does not return tokens yet
+                    set({ loading: false });
+                    toast.success(res.data.message || 'OTP Sent!');
+                    return { success: true, userId: res.data.userId, email: res.data.email };
+                } catch (error) {
+                    console.error("Signup error:", error);
+                    const message = error.response?.data?.message || 'Signup failed';
+                    set({ loading: false, error: message });
+                    toast.error(message);
+                    return { success: false, error: message };
+                }
+            },
+
+            verifyOtp: async ({ userId, otp }) => {
+                set({ loading: true, error: null });
+                try {
+                    const res = await axios.post('/api/auth/verify-otp', { userId, otp });
                     set({
                         user: res.data.user,
                         accessToken: res.data.accessToken,
@@ -29,11 +46,33 @@ export const useUserStore = create(
                         loading: false,
                         isAuthenticated: true,
                     });
-                    toast.success('Account created successfully!');
+                    toast.success('Email verified successfully!');
                     return { success: true };
                 } catch (error) {
-                    console.error("Signup error:", error);
-                    const message = error.response?.data?.message || 'Signup failed';
+                    console.error("OTP Verification error:", error);
+                    const message = error.response?.data?.message || 'Verification failed';
+                    set({ loading: false, error: message });
+                    toast.error(message);
+                    return { success: false, error: message };
+                }
+            },
+
+            googleLogin: async (credential) => {
+                set({ loading: true, error: null });
+                try {
+                    const res = await axios.post('/api/auth/google', { token: credential });
+                    set({
+                        user: res.data.user,
+                        accessToken: res.data.accessToken,
+                        refreshToken: res.data.refreshToken,
+                        loading: false,
+                        isAuthenticated: true,
+                    });
+                    toast.success('Google Login Successful!');
+                    return { success: true };
+                } catch (error) {
+                    console.error("Google Login error:", error);
+                    const message = error.response?.data?.message || 'Google Login failed';
                     set({ loading: false, error: message });
                     toast.error(message);
                     return { success: false, error: message };
