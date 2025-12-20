@@ -77,7 +77,7 @@ export default function MessagesPage() {
         // Configure audio
         ringtoneRef.current.loop = true;
         callingSoundRef.current.loop = true;
-        
+
         return () => {
             ringtoneRef.current.pause();
             callingSoundRef.current.pause();
@@ -115,17 +115,17 @@ export default function MessagesPage() {
 
     const activeConversation = conversations.find(c => c._id === selectedConversation);
     const activeOther = activeConversation ? getOtherParticipant(activeConversation) : null;
-    
+
     const activeItem = activeConversation ? (activeConversation.contextId || activeConversation.product || activeConversation.listing || activeConversation.item || null) : null;
-    
+
     const getItemDetails = (item) => {
         if (!item) return { title: "Item", price: null, image: null, currency: "₹" };
         let title = item.title || item.name || "Item";
         let price = null;
         if (item.type === 'rent' && item.rentalPrice) {
-             price = item.rentalPrice;
+            price = item.rentalPrice;
         } else {
-             price = item.price || item.rent || item.salary || null;
+            price = item.price || item.rent || item.salary || null;
         }
         let image = null;
         if (item.images && item.images.length > 0) {
@@ -291,16 +291,16 @@ export default function MessagesPage() {
                 currentStream?.getTracks().forEach(track => track.stop());
                 return null;
             });
-            window.location.reload(); 
+            window.location.reload();
         });
 
         socket.on("callRejected", () => {
-             toast.error("User is busy or rejected the call");
-             setCallModalOpen(false);
-             setCallAccepted(false);
-             setReceivingCall(false);
-             connectionRef.current?.destroy();
-             setStream((currentStream) => {
+            toast.error("User is busy or rejected the call");
+            setCallModalOpen(false);
+            setCallAccepted(false);
+            setReceivingCall(false);
+            connectionRef.current?.destroy();
+            setStream((currentStream) => {
                 currentStream?.getTracks().forEach(track => track.stop());
                 return null;
             });
@@ -319,7 +319,7 @@ export default function MessagesPage() {
         setCallModalOpen(true);
         setIsMuted(false);
         setIsCameraOff(false);
-        
+
         // Play calling sound
         try {
             callingSoundRef.current.play().catch(e => console.log("Audio play failed", e));
@@ -388,11 +388,11 @@ export default function MessagesPage() {
         setIsCameraOff(false);
 
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-             toast.error("Your browser does not support calling features.");
-             setCallModalOpen(false);
-             setCallAccepted(false);
-             setReceivingCall(false);
-             return;
+            toast.error("Your browser does not support calling features.");
+            setCallModalOpen(false);
+            setCallAccepted(false);
+            setReceivingCall(false);
+            return;
         }
 
         navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true })
@@ -451,13 +451,13 @@ export default function MessagesPage() {
         setCallModalOpen(false);
         setCallAccepted(false);
         setReceivingCall(false);
-        
+
         // Notify other user
         const otherId = receivingCall ? caller : (activeOther?._id || activeOther?.id);
         if (otherId) {
             socket.emit("endCall", { to: otherId });
         }
-        window.location.reload(); 
+        window.location.reload();
     };
 
     const toggleMute = () => {
@@ -510,14 +510,14 @@ export default function MessagesPage() {
         setIsOfferMode(false); // Reset offer mode on chat switch
         setNewMessage("");
     }, [selectedConversation]);
-    
+
     const latestOffer = useMemo(() => {
         if (!messages.messages) return null;
         let max = 0;
         for (const m of messages.messages) {
-             const offerMatch = (m.content || "").match(/(?:offer|price|deal).*(?:₹|rs\.?|inr)\s*([\d,]+)/i) || (m.content || "").match(/offer.*(?:₹|rs\.?|inr)\s*([\d,]+)/i);
-             const amount = offerMatch ? parseInt(offerMatch[1].replace(/,/g, ''), 10) : 0;
-             if (amount > max) max = amount;
+            const offerMatch = (m.content || "").match(/(?:offer|price|deal).*(?:₹|rs\.?|inr)\s*([\d,]+)/i) || (m.content || "").match(/offer.*(?:₹|rs\.?|inr)\s*([\d,]+)/i);
+            const amount = offerMatch ? parseInt(offerMatch[1].replace(/,/g, ''), 10) : 0;
+            if (amount > max) max = amount;
         }
         return max || null;
     }, [messages]);
@@ -525,7 +525,7 @@ export default function MessagesPage() {
     useEffect(() => {
         const target = basePrice ? Number(basePrice) : null;
         if (!target) return;
-        
+
         // Check if deal conditions met
         const list = messages.messages || [];
         for (const m of list) {
@@ -556,12 +556,12 @@ export default function MessagesPage() {
     const handleSaveEdit = async (msgId) => {
         const msg = messages.messages?.find(m => m._id === msgId);
         const hasAttachments = msg?.attachments?.length > 0;
-        
+
         if (!editContent.trim() && !hasAttachments) return;
-        
+
         try {
-            await axios.put(`${API}/api/messages/${msgId}`, 
-                { content: editContent }, 
+            await axios.put(`${API}/api/messages/${msgId}`,
+                { content: editContent },
                 { headers: { Authorization: `Bearer ${accessToken}` } }
             );
             setEditingMessageId(null);
@@ -592,7 +592,7 @@ export default function MessagesPage() {
         if ((!hasText && !hasOffer && !hasFiles) || !selectedConversation) return;
 
         let textToSend = newMessage.trim();
-        
+
         if (isOfferMode) {
             const v = parseInt(String(offerAmount).replace(/[^\d]/g, ""), 10);
             if (!v || Number.isNaN(v)) return;
@@ -702,7 +702,7 @@ export default function MessagesPage() {
     // Product Context Bar
     const ProductContextBar = ({ item, price, currency, currentOffer, currentUser }) => {
         if (!item) return null;
-        
+
         const target = price ? Number(price) : null;
         const offer = currentOffer ? Number(currentOffer) : 0;
         const progress = target ? Math.min(100, Math.round((offer / target) * 100)) : 0;
@@ -738,7 +738,7 @@ export default function MessagesPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                             <h3 style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1e293b' }}>{item.title}</h3>
                             {isOwner && productId && (
-                                <Link 
+                                <Link
                                     to={`/product/${productId}`}
                                     title="View/Edit Product"
                                     style={{ color: '#64748b', display: 'flex', alignItems: 'center' }}
@@ -760,17 +760,17 @@ export default function MessagesPage() {
                             <span>{progress}% of Target</span>
                         </div>
                         <div style={{ height: '6px', backgroundColor: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
-                             <div style={{ 
-                                 width: `${progress}%`, 
-                                 height: '100%', 
-                                 background: progress >= 100 ? '#22c55e' : 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
-                                 transition: 'width 0.5s ease'
-                             }} />
+                            <div style={{
+                                width: `${progress}%`,
+                                height: '100%',
+                                background: progress >= 100 ? '#22c55e' : 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
+                                transition: 'width 0.5s ease'
+                            }} />
                         </div>
                         {currentOffer && (
-                             <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#3b82f6', marginTop: '2px' }}>
-                                 Offer: {currency} {Number(currentOffer).toLocaleString()}
-                             </div>
+                            <div style={{ textAlign: 'right', fontSize: '0.65rem', color: '#3b82f6', marginTop: '2px' }}>
+                                Offer: {currency} {Number(currentOffer).toLocaleString()}
+                            </div>
                         )}
                     </div>
                 )}
@@ -781,7 +781,7 @@ export default function MessagesPage() {
     return (
         <div style={styles.container}>
             <Navbar />
-            
+
             <div style={styles.contentWrapper}>
                 {/* Sidebar - Conversations List */}
                 <div style={{
@@ -793,7 +793,7 @@ export default function MessagesPage() {
                         <h1 style={styles.sidebarTitle}>Messages</h1>
                         <div style={styles.searchContainer}>
                             <Search style={styles.searchIcon} />
-                            <input 
+                            <input
                                 type="text"
                                 placeholder="Search conversations..."
                                 value={searchTerm}
@@ -813,7 +813,7 @@ export default function MessagesPage() {
                         {sortedConversations.map((conversation) => {
                             const otherParticipant = getOtherParticipant(conversation);
                             const isActive = selectedConversation === conversation._id;
-                            
+
                             return (
                                 <div
                                     key={conversation._id}
@@ -830,7 +830,7 @@ export default function MessagesPage() {
                                         if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
                                     }}
                                 >
-                                    <Link 
+                                    <Link
                                         to={`/profile/${otherParticipant?._id}`}
                                         onClick={(e) => e.stopPropagation()}
                                         style={{
@@ -851,7 +851,7 @@ export default function MessagesPage() {
                                     </Link>
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '0.25rem' }}>
-                                            <Link 
+                                            <Link
                                                 to={`/profile/${otherParticipant?._id}`}
                                                 onClick={(e) => e.stopPropagation()}
                                                 style={{ textDecoration: 'none', color: 'inherit', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}
@@ -911,13 +911,13 @@ export default function MessagesPage() {
                             {/* Chat Header */}
                             <div style={styles.chatHeader}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                    <button 
+                                    <button
                                         onClick={() => selectConversation(null)}
                                         style={{ display: isMobile ? 'block' : 'none', padding: '0.5rem', marginLeft: '-0.5rem', borderRadius: '50%', color: '#4b5563', border: 'none', background: 'transparent' }}
                                     >
                                         <ArrowLeft style={{ width: '1.25rem', height: '1.25rem' }} />
                                     </button>
-                                    
+
                                     <Link to={`/profile/${activeOther?._id}`} style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '1rem', color: 'inherit' }}>
                                         <div style={{ position: 'relative' }}>
                                             <div style={{ width: '2.5rem', height: '2.5rem', borderRadius: '50%', background: 'linear-gradient(to bottom right, #6366f1, #9333ea)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: '600' }}>
@@ -929,7 +929,7 @@ export default function MessagesPage() {
                                             </div>
                                             <div style={{ position: 'absolute', bottom: 0, right: 0, width: '0.75rem', height: '0.75rem', backgroundColor: '#22c55e', border: '2px solid #fff', borderRadius: '50%' }}></div>
                                         </div>
-                                        
+
                                         <div>
                                             <h2 style={{ fontWeight: '700', color: '#1f2937' }}>{activeOther?.name || 'Unknown User'}</h2>
                                             <p style={{ fontSize: '0.75rem', color: '#16a34a' }}>Online</p>
@@ -951,7 +951,7 @@ export default function MessagesPage() {
 
                             {/* Product Context Bar */}
                             {activeItem && (
-                                <ProductContextBar 
+                                <ProductContextBar
                                     item={{
                                         title: itemTitle,
                                         image: getItemDetails(activeItem).image,
@@ -966,15 +966,15 @@ export default function MessagesPage() {
                             {/* Messages List */}
                             <div style={styles.messagesList}>
                                 {messagesLoading && <div style={{ textAlign: 'center', color: '#9ca3af', fontSize: '0.75rem', padding: '1rem 0' }}>Loading history...</div>}
-                                
+
                                 {messages.messages?.map((msg, idx) => {
                                     const fromMe = isFromMe(msg);
-                                    
+
                                     // Detect Offer Pattern
                                     const offerMatch = msg.content?.match(/(?:offer|price|deal).*(?:₹|rs\.?|inr)\s*([\d,]+)/i) || msg.content?.match(/offer.*(?:₹|rs\.?|inr)\s*([\d,]+)/i);
                                     const isOffer = !!offerMatch;
                                     const offerAmountVal = isOffer ? parseInt(offerMatch[1].replace(/,/g, ''), 10) : null;
-                                    
+
                                     // Normalize target price
                                     const target = basePrice ? Number(basePrice) : null;
 
@@ -982,8 +982,8 @@ export default function MessagesPage() {
                                     const isEditing = editingMessageId === msg._id;
 
                                     return (
-                                        <div 
-                                            key={idx} 
+                                        <div
+                                            key={idx}
                                             style={{ ...styles.messageRow, justifyContent: fromMe ? 'flex-end' : 'flex-start' }}
                                             onMouseEnter={() => setHoveredMessageId(msg._id)}
                                             onMouseLeave={() => setHoveredMessageId(null)}
@@ -999,7 +999,7 @@ export default function MessagesPage() {
                                                             <div style={{ fontSize: '0.75rem', fontWeight: '700', color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.025em', marginBottom: '0.25rem' }}>Offer Received</div>
                                                             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#111827' }}>{baseCurrency} {offerAmountVal?.toLocaleString()}</div>
                                                             <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                                                                Original Price: {baseCurrency} {target.toLocaleString()} 
+                                                                Original Price: {baseCurrency} {target.toLocaleString()}
                                                                 {offerAmountVal < target && <span style={{ color: '#16a34a', marginLeft: '0.25rem' }}>({Math.round(((target - offerAmountVal) / target) * 100)}% off)</span>}
                                                             </div>
                                                         </div>
@@ -1007,12 +1007,12 @@ export default function MessagesPage() {
 
                                                     {isEditing ? (
                                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}>
-                                                            <textarea 
+                                                            <textarea
                                                                 value={editContent}
                                                                 onChange={(e) => setEditContent(e.target.value)}
-                                                                style={{ 
-                                                                    padding: '0.5rem', 
-                                                                    borderRadius: '0.25rem', 
+                                                                style={{
+                                                                    padding: '0.5rem',
+                                                                    borderRadius: '0.25rem',
                                                                     border: '1px solid #d1d5db',
                                                                     fontSize: '0.875rem',
                                                                     color: '#1f2937',
@@ -1035,13 +1035,13 @@ export default function MessagesPage() {
                                                     {/* Offer Actions for Receiver */}
                                                     {isOffer && !fromMe && (
                                                         <div style={{ marginTop: '0.75rem', paddingTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => sendMessage(selectedConversation, `I accept your offer of ${baseCurrency} ${offerAmountVal?.toLocaleString('en-IN')}!`)}
                                                                 style={{ flex: 1, backgroundColor: '#16a34a', color: '#fff', fontSize: '0.75rem', fontWeight: '700', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', border: 'none', cursor: 'pointer' }}
                                                             >
                                                                 <Check style={{ width: '0.75rem', height: '0.75rem' }} /> Accept
                                                             </button>
-                                                            <button 
+                                                            <button
                                                                 onClick={() => sendMessage(selectedConversation, `Sorry, ${baseCurrency} ${offerAmountVal?.toLocaleString('en-IN')} is too low for me.`)}
                                                                 style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#374151', fontSize: '0.75rem', fontWeight: '700', padding: '0.5rem 0.75rem', borderRadius: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.25rem', border: 'none', cursor: 'pointer' }}
                                                             >
@@ -1049,32 +1049,32 @@ export default function MessagesPage() {
                                                             </button>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {isOffer && target && (
                                                         <div style={{ marginTop: '0.5rem' }}>
                                                             <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
-                                                                Offer vs Asking: {Math.min(100, Math.round((offerAmountVal / target) * 100))}% 
+                                                                Offer vs Asking: {Math.min(100, Math.round((offerAmountVal / target) * 100))}%
                                                             </div>
                                                             <div style={{ height: '6px', backgroundColor: '#e5e7eb', borderRadius: '9999px', marginTop: '0.25rem' }}>
                                                                 <div style={{ width: `${Math.min(100, Math.round((offerAmountVal / target) * 100))}%`, height: '100%', background: 'linear-gradient(90deg, #93c5fd 0%, #3b82f6 50%, #1d4ed8 100%)', borderRadius: '9999px' }} />
                                                             </div>
                                                         </div>
                                                     )}
-                                                    
+
                                                     {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
                                                         <div style={{ marginTop: '0.5rem', display: 'grid', gridTemplateColumns: msg.attachments.length === 1 ? '1fr' : 'repeat(auto-fit, minmax(80px, 1fr))', gap: '0.25rem', maxWidth: '300px' }}>
                                                             {msg.attachments.map((url, i) => {
                                                                 const src = typeof url === 'string' ? url : url.url;
                                                                 const fullSrc = src.startsWith('http') || src.startsWith('data:') ? src : `${API}${src}`;
                                                                 return (
-                                                                    <div key={i} 
+                                                                    <div key={i}
                                                                         onClick={() => window.open(fullSrc, '_blank')}
                                                                         style={{ position: 'relative', width: '100%', aspectRatio: '1', borderRadius: '0.5rem', overflow: 'hidden', border: '1px solid #e5e7eb', backgroundColor: '#f3f4f6', cursor: 'pointer' }}
                                                                     >
-                                                                        <img 
+                                                                        <img
                                                                             src={fullSrc}
-                                                                            alt="Attachment" 
-                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} 
+                                                                            alt="Attachment"
+                                                                            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                                                                             referrerPolicy="no-referrer"
                                                                         />
                                                                     </div>
@@ -1090,7 +1090,7 @@ export default function MessagesPage() {
                                                     {fromMe && (
                                                         <>
                                                             {msg.read || msg.isRead ? <CheckCheck size={16} color="#3b82f6" /> : <CheckCheck size={16} color="#9ca3af" />}
-                                                            
+
                                                             {isHovered && !isEditing && (
                                                                 <div style={{ display: 'flex', gap: '0.5rem', marginLeft: '0.5rem' }}>
                                                                     {!isOffer && (
@@ -1118,7 +1118,7 @@ export default function MessagesPage() {
                                 {/* Smart Replies */}
                                 <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.75rem', marginBottom: '0.25rem', scrollbarWidth: 'none' }}>
                                     {quickTemplates.map((t, i) => (
-                                        <button 
+                                        <button
                                             key={i}
                                             onClick={() => setNewMessage(t)}
                                             style={{ whiteSpace: 'nowrap', padding: '0.375rem 0.75rem', backgroundColor: '#f9fafb', color: '#4b5563', fontSize: '0.75rem', fontWeight: '500', borderRadius: '9999px', border: '1px solid #e5e7eb', cursor: 'pointer' }}
@@ -1132,7 +1132,7 @@ export default function MessagesPage() {
 
                                 <form onSubmit={handleSendMessage} style={styles.inputForm}>
                                     {/* Make Offer Button Removed as per request */}
-                                    
+
                                     <div style={{ flex: 1, minWidth: 0 }}>
                                         {isOfferMode ? (
                                             <div style={{ display: 'flex', alignItems: 'center', height: '100%', padding: '0 0.5rem' }}>
@@ -1162,7 +1162,7 @@ export default function MessagesPage() {
                                             />
                                         )}
                                     </div>
-                                    
+
                                     <input
                                         ref={fileInputRef}
                                         type="file"
@@ -1186,7 +1186,7 @@ export default function MessagesPage() {
                                         <ImageIcon style={{ width: '1.25rem', height: '1.25rem' }} />
                                     </button>
 
-                                    <button 
+                                    <button
                                         type="submit"
                                         disabled={(!(newMessage.trim() || (isOfferMode && offerAmount) || attachments.length))}
                                         style={{
@@ -1200,7 +1200,7 @@ export default function MessagesPage() {
                                         <Send style={{ width: '1.25rem', height: '1.25rem' }} />
                                     </button>
                                 </form>
-                                
+
                                 {attachmentPreviews.length > 0 && (
                                     <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                                         {attachmentPreviews.map((src, i) => (
@@ -1262,26 +1262,26 @@ export default function MessagesPage() {
                             {callAccepted && !callEnded && (
                                 <video playsInline ref={userVideo} autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             )}
-                            
+
                             {/* My Video (Picture in Picture) */}
                             {stream && (
-                                <video 
-                                    playsInline 
-                                    muted 
-                                    ref={myVideo} 
-                                    autoPlay 
-                                    style={{ 
-                                        position: 'absolute', 
-                                        bottom: '10px', 
-                                        right: '10px', 
-                                        width: '100px', 
-                                        borderRadius: '0.5rem', 
+                                <video
+                                    playsInline
+                                    muted
+                                    ref={myVideo}
+                                    autoPlay
+                                    style={{
+                                        position: 'absolute',
+                                        bottom: '10px',
+                                        right: '10px',
+                                        width: '100px',
+                                        borderRadius: '0.5rem',
                                         border: '2px solid white',
                                         display: isVideoCall ? 'block' : 'none'
-                                    }} 
+                                    }}
                                 />
                             )}
-                            
+
                             {!callAccepted && (
                                 <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: '1rem' }}>
                                     <div style={{ width: '5rem', height: '5rem', borderRadius: '50%', overflow: 'hidden', border: '4px solid #3b82f6' }}>
@@ -1309,7 +1309,7 @@ export default function MessagesPage() {
                                 <Phone style={{ transform: 'rotate(135deg)' }} />
                             </button>
                         </div>
-                        
+
                         {receivingCall && !callAccepted && (
                             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                                 <button onClick={answerCall} style={{ backgroundColor: '#22c55e', color: 'white', padding: '0.75rem 2rem', borderRadius: '2rem', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
