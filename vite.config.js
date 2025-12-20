@@ -98,7 +98,7 @@ export default defineConfig(({ mode }) => {
           rewrite: (p) => p.replace(/^\/osrm/, ""),
         },
         "/api": {
-          target: "http://localhost:5000",
+          target: "https://campuscart-backend-34qc.onrender.com",
           changeOrigin: true,
           secure: false,
         },
