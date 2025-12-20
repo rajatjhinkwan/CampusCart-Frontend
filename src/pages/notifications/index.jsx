@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+// Vercel deployment fix
 import axios from "../../lib/axios";
 import Navbar from "../../components/navbar.jsx";
 import NotificationsTabs from "./components/NotificationsTabs.jsx";
