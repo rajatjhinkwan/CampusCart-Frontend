@@ -69,6 +69,65 @@ export default function MessagesPage() {
     const [callModalOpen, setCallModalOpen] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
+    const [remoteStream, setRemoteStream] = useState(null);
+    const [isLocalSpeaking, setIsLocalSpeaking] = useState(false);
+    const [isRemoteSpeaking, setIsRemoteSpeaking] = useState(false);
+
+    useEffect(() => {
+        if (!stream && !remoteStream) return;
+        let audioContext;
+        let localAnalyser, remoteAnalyser;
+        let localSource, remoteSource;
+        let animationFrameId;
+
+        try {
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+            if (stream) {
+                const audioTracks = stream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    localAnalyser = audioContext.createAnalyser();
+                    localAnalyser.fftSize = 256;
+                    localSource = audioContext.createMediaStreamSource(stream);
+                    localSource.connect(localAnalyser);
+                }
+            }
+
+            if (remoteStream) {
+                const audioTracks = remoteStream.getAudioTracks();
+                if (audioTracks.length > 0) {
+                    remoteAnalyser = audioContext.createAnalyser();
+                    remoteAnalyser.fftSize = 256;
+                    remoteSource = audioContext.createMediaStreamSource(remoteStream);
+                    remoteSource.connect(remoteAnalyser);
+                }
+            }
+
+            const checkAudio = () => {
+                if (localAnalyser) {
+                    const dataArray = new Uint8Array(localAnalyser.frequencyBinCount);
+                    localAnalyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    setIsLocalSpeaking(average > 10);
+                }
+                if (remoteAnalyser) {
+                    const dataArray = new Uint8Array(remoteAnalyser.frequencyBinCount);
+                    remoteAnalyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    setIsRemoteSpeaking(average > 10);
+                }
+                animationFrameId = requestAnimationFrame(checkAudio);
+            };
+            checkAudio();
+        } catch (e) {
+            console.error("Audio analysis failed", e);
+        }
+
+        return () => {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            if (audioContext && audioContext.state !== 'closed') audioContext.close();
+        };
+    }, [stream, remoteStream]);
 
     // Audio Refs
     const ringtoneRef = useRef(new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3"));
@@ -292,6 +351,7 @@ export default function MessagesPage() {
                 currentStream?.getTracks().forEach(track => track.stop());
                 return null;
             });
+            setRemoteStream(null);
             window.location.reload();
         });
 
@@ -305,6 +365,7 @@ export default function MessagesPage() {
                 currentStream?.getTracks().forEach(track => track.stop());
                 return null;
             });
+            setRemoteStream(null);
         });
 
         return () => {
@@ -360,6 +421,7 @@ export default function MessagesPage() {
                 });
 
                 peer.on("stream", (userStream) => {
+                    setRemoteStream(userStream);
                     if (userVideo.current) {
                         userVideo.current.srcObject = userStream;
                     }
@@ -415,6 +477,7 @@ export default function MessagesPage() {
                 });
 
                 peer.on("stream", (userStream) => {
+                    setRemoteStream(userStream);
                     if (userVideo.current) {
                         userVideo.current.srcObject = userStream;
                     }
@@ -449,6 +512,7 @@ export default function MessagesPage() {
             stream.getTracks().forEach(track => track.stop());
             setStream(null);
         }
+        setRemoteStream(null);
         setCallModalOpen(false);
         setCallAccepted(false);
         setReceivingCall(false);
@@ -1261,26 +1325,86 @@ export default function MessagesPage() {
                         {/* Video Area */}
                         <div style={{ position: 'relative', width: '100%', aspectRatio: '16/9', backgroundColor: '#000', borderRadius: '0.5rem', overflow: 'hidden' }}>
                             {callAccepted && !callEnded && (
-                                <video playsInline ref={userVideo} autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                <>
+                                    <video playsInline ref={userVideo} autoPlay style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                    {/* Remote Speaking Animation */}
+                                    {isRemoteSpeaking && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            top: '50%',
+                                            left: '50%',
+                                            transform: 'translate(-50%, -50%)',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            gap: '1rem',
+                                            zIndex: 10
+                                        }}>
+                                            <div style={{
+                                                width: '100px',
+                                                height: '100px',
+                                                borderRadius: '50%',
+                                                border: '4px solid #3b82f6',
+                                                animation: 'pulse 1s infinite',
+                                                boxShadow: '0 0 0 0 rgba(59, 130, 246, 0.7)'
+                                            }} />
+                                            <span style={{
+                                                backgroundColor: 'rgba(0,0,0,0.6)',
+                                                padding: '0.5rem 1rem',
+                                                borderRadius: '1rem',
+                                                color: 'white',
+                                                fontWeight: '600'
+                                            }}>
+                                                {name || activeOther?.name || 'User'} Speaking...
+                                            </span>
+                                        </div>
+                                    )}
+                                </>
                             )}
 
                             {/* My Video (Picture in Picture) */}
                             {stream && (
-                                <video
-                                    playsInline
-                                    muted
-                                    ref={myVideo}
-                                    autoPlay
-                                    style={{
-                                        position: 'absolute',
-                                        bottom: '10px',
-                                        right: '10px',
-                                        width: '100px',
-                                        borderRadius: '0.5rem',
-                                        border: '2px solid white',
-                                        display: isVideoCall ? 'block' : 'none'
-                                    }}
-                                />
+                                <div style={{
+                                    position: 'absolute',
+                                    bottom: '10px',
+                                    right: '10px',
+                                    zIndex: 20
+                                }}>
+                                    <video
+                                        playsInline
+                                        muted
+                                        ref={myVideo}
+                                        autoPlay
+                                        style={{
+                                            width: '100px',
+                                            borderRadius: '0.5rem',
+                                            border: isLocalSpeaking ? '4px solid #22c55e' : '2px solid white',
+                                            display: isVideoCall ? 'block' : 'none',
+                                            transition: 'border 0.2s ease',
+                                            boxShadow: isLocalSpeaking ? '0 0 10px #22c55e' : 'none'
+                                        }}
+                                    />
+                                    {/* Local Speaking Indicator */}
+                                    {isLocalSpeaking && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: isVideoCall ? '-25px' : '0',
+                                            right: '0',
+                                            backgroundColor: '#22c55e',
+                                            color: 'white',
+                                            padding: '0.25rem 0.5rem',
+                                            borderRadius: '0.5rem',
+                                            fontSize: '0.75rem',
+                                            whiteSpace: 'nowrap',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.25rem'
+                                        }}>
+                                            <span>You</span>
+                                            <div style={{ width: '8px', height: '8px', backgroundColor: 'white', borderRadius: '50%', animation: 'pulse 1s infinite' }} />
+                                        </div>
+                                    )}
+                                </div>
                             )}
 
                             {!callAccepted && (
