@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
-// Vercel deployment fix
+// Vercel deployment fix v2
 import { io } from "socket.io-client";
 import Navbar from "../../components/navbar.jsx";
 import { useUserStore } from "../../store/userStore.js";
