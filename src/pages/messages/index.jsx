@@ -7,6 +7,7 @@ import { Link } from "react-router-dom";
 import axios from "axios";
 import { Send, ArrowLeft, MoreVertical, Image as ImageIcon, Tag, Check, CheckCheck, X, Search, Edit2, Trash2, Phone, Video as VideoIcon, Mic, MicOff, VideoOff } from "lucide-react";
 import SimplePeer from "simple-peer";
+import toast from "react-hot-toast";
 import { styles } from "./styles";
 
 const API = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -294,7 +295,7 @@ export default function MessagesPage() {
         });
 
         socket.on("callRejected", () => {
-             alert("User is busy or rejected the call");
+             toast.error("User is busy or rejected the call");
              setCallModalOpen(false);
              setCallAccepted(false);
              setReceivingCall(false);
@@ -324,6 +325,13 @@ export default function MessagesPage() {
             callingSoundRef.current.play().catch(e => console.log("Audio play failed", e));
         } catch (e) {
             console.error("Error playing calling sound:", e);
+        }
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            toast.error("Your browser does not support calling features.");
+            setCallModalOpen(false);
+            stopSounds();
+            return;
         }
 
         navigator.mediaDevices.getUserMedia({ video: video, audio: true })
@@ -360,7 +368,15 @@ export default function MessagesPage() {
             })
             .catch((err) => {
                 console.error("Error accessing media devices:", err);
-                alert("Could not access camera/microphone. Please allow permissions.");
+                let msg = "Could not access camera/microphone.";
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    msg = "Permission denied. Please allow camera/microphone access in your browser settings.";
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    msg = "No camera or microphone found on this device.";
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    msg = "Camera/microphone is already in use by another application.";
+                }
+                toast.error(msg);
                 setCallModalOpen(false);
                 stopSounds();
             });
@@ -370,6 +386,14 @@ export default function MessagesPage() {
         setCallAccepted(true);
         setIsMuted(false);
         setIsCameraOff(false);
+
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+             toast.error("Your browser does not support calling features.");
+             setCallModalOpen(false);
+             setCallAccepted(false);
+             setReceivingCall(false);
+             return;
+        }
 
         navigator.mediaDevices.getUserMedia({ video: isVideoCall, audio: true })
             .then((currentStream) => {
@@ -400,7 +424,15 @@ export default function MessagesPage() {
             })
             .catch((err) => {
                 console.error("Error accessing media devices:", err);
-                alert("Could not access camera/microphone.");
+                let msg = "Could not access camera/microphone.";
+                if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+                    msg = "Permission denied. Please allow camera/microphone access in your browser settings.";
+                } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+                    msg = "No camera or microphone found on this device.";
+                } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+                    msg = "Camera/microphone is already in use by another application.";
+                }
+                toast.error(msg);
                 // Clean up if error
                 setCallModalOpen(false);
                 setCallAccepted(false);
@@ -536,7 +568,7 @@ export default function MessagesPage() {
             setEditContent("");
         } catch (error) {
             console.error("Failed to edit message", error);
-            alert("Failed to edit message");
+            toast.error("Failed to edit message");
         }
     };
 
@@ -548,7 +580,7 @@ export default function MessagesPage() {
             });
         } catch (error) {
             console.error("Failed to delete message", error);
-            alert("Failed to delete message");
+            toast.error("Failed to delete message");
         }
     };
 
@@ -576,7 +608,7 @@ export default function MessagesPage() {
             } else {
                 clearProgressTimer();
                 setProgressVisible(false);
-                alert(uploadRes.error);
+                toast.error(uploadRes.error);
                 return;
             }
         } else {
@@ -593,7 +625,7 @@ export default function MessagesPage() {
         } else {
             clearProgressTimer();
             setProgressVisible(false);
-            alert(result.error);
+            toast.error(result.error);
         }
     };
 
