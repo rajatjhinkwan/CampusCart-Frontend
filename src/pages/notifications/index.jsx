@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "../../lib/axios";
-import Navbar from "../../components/Navbar.jsx";
+import Navbar from "../../components/navbar.jsx";
 import NotificationsTabs from "./components/NotificationsTabs.jsx";
 import NotificationsList from "./components/NotificationsList.jsx";
 
