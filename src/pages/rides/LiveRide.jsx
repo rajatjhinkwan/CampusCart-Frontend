@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import Navbar from '../../components/Navbar';
+import Navbar from '../../components/navbar';
 import LiveMap from '../../components/rides/LiveMap';
 import axios from '../../lib/axios';
 import { io } from 'socket.io-client';

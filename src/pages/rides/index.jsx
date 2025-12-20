@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Navbar from '../../components/Navbar';
+import Navbar from '../../components/navbar';
 import RideRequestForm from '../../components/rides/RideRequestForm';
 import OpenRidesList from '../../components/rides/OpenRidesList';
 import LiveMap from '../../components/rides/LiveMap';

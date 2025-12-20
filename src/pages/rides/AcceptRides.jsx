@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import Navbar from '../../components/Navbar';
+import Navbar from '../../components/navbar';
 import OpenRidesList from '../../components/rides/OpenRidesList';
 import LiveMap from '../../components/rides/LiveMap';
 import { useUserStore } from '../../store/userStore';
