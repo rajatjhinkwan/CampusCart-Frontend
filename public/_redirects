@@ -1,0 +1,5 @@
+# SPA fallback
+/*    /index.html   200
+
+# Proxy API requests to the Render backend (same-origin in production)
+/api/*  https://campuscart-backend-34qc.onrender.com/api/:splat  200
