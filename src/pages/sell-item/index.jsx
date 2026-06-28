@@ -282,12 +282,10 @@ export default function SellItem() {
         }
 
         const categoryId = await resolveListingCategoryId("product");
-        if (!categoryId) {
-          toast.error("Could not find a product category. Refresh the page and pick the type again.");
-          setIsSubmitting(false);
-          return;
+        if (categoryId) {
+          formData.append("category", categoryId);
         }
-        formData.append("category", categoryId);
+        // Backend resolves categoryTitle when the categories API is empty or IDs drift
         formData.append("categoryTitle", form.category);
 
         const type = form.priceDetails.transactionType || "sell";
