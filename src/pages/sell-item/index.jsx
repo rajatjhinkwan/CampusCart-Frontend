@@ -36,7 +36,7 @@ export default function SellItem() {
         const list = res.data.categories || [];
         setCategories(list);
         if (list.length === 0) {
-          console.warn("No categories in database — run npm run seed:demo in my-backend");
+          console.warn("Categories API returned empty — backend may need redeploy or seed");
         }
       } catch (err) {
         console.error("Error fetching categories:", err);
