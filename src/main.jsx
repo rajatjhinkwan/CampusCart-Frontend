@@ -7,6 +7,22 @@ import App from './App.jsx'
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
 
+// Remove any legacy PWA service workers so old install prompts cannot persist
+if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    registrations.forEach((registration) => registration.unregister());
+  });
+  if ('caches' in window) {
+    caches.keys().then((keys) => {
+      keys.forEach((key) => {
+        if (/workbox|pwa|precache/i.test(key)) {
+          caches.delete(key);
+        }
+      });
+    });
+  }
+}
+
 // Auto-reload the page when a dynamic import (chunk load) fails
 window.addEventListener('vite:preloadError', (event) => {
   const lastReload = sessionStorage.getItem('last-preload-error-reload');
