@@ -27,8 +27,7 @@ export default function NotificationDetail() {
 
   const load = async () => {
     try {
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}`;
-      const res = await axios.get(url);
+      const res = await axios.get(`/api/notifications/${id}`);
       setItem(res.data);
     } catch (e) {
       console.error(e);
@@ -43,8 +42,7 @@ export default function NotificationDetail() {
 
   const markRead = async () => {
     try {
-      const url = `${import.meta.env.VITE_API_BASE_URL}/api/notifications/${id}/read`;
-      const res = await axios.patch(url, {});
+      const res = await axios.patch(`/api/notifications/${id}/read`, {});
       setItem(res.data);
     } catch (e) {
       console.error(e);

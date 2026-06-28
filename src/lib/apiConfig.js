@@ -1,6 +1,6 @@
 /**
  * Central API configuration for dev and production.
- * Production Netlify builds need a real backend URL when VITE_API_BASE_URL is unset.
+ * Production Vercel builds need a real backend URL when VITE_API_BASE_URL is unset.
  */
 export const PRODUCTION_API_URL =
   import.meta.env.VITE_API_BASE_URL ||
