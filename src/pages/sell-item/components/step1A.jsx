@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "../../../lib/axios";
+import toast from "react-hot-toast";
 import { resolveCategoryId } from "../../../utils/categoryResolve";
 import {
   Smartphone, Shirt, Laptop, Sofa, Camera, Dumbbell, BookMarked, Bike,
@@ -51,18 +52,22 @@ const normalizeId = (value) => {
 export default function Step1A({ onSelect, onBack, categories = [] }) {
   const [fetchedCategories, setFetchedCategories] = useState([]);
   const [extraSubs, setExtraSubs] = useState([]);
+  const [loadingCats, setLoadingCats] = useState(false);
 
   useEffect(() => {
     if (categories.length > 0) return undefined;
     let cancelled = false;
 
     const fetchSubcategories = async () => {
+      setLoadingCats(true);
       try {
         const res = await axios.get("/api/categories");
         const allCategories = Array.isArray(res.data?.categories) ? res.data.categories : [];
         if (!cancelled) setFetchedCategories(allCategories);
       } catch (err) {
         console.error("Error fetching product subcategories, using defaults:", err);
+      } finally {
+        if (!cancelled) setLoadingCats(false);
       }
     };
 
@@ -96,6 +101,10 @@ export default function Step1A({ onSelect, onBack, categories = [] }) {
   );
 
   const handleSelect = (title) => {
+    if (loadingCats && allCategories.length === 0) {
+      toast.error("Categories are still loading. Please wait a second.");
+      return;
+    }
     const categoryId = resolveCategoryId(title, allCategories, "product");
     onSelect(title, categoryId);
   };

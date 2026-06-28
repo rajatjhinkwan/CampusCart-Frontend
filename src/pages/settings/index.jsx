@@ -169,9 +169,7 @@ export default function SettingsPage() {
       if (profile.avatarFile) {
         profileForm.append("avatar", profile.avatarFile);
       }
-      const profileRes = await axios.put('/api/users/me', profileForm, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const profileRes = await axios.put('/api/users/me', profileForm);
       const updatedUser = profileRes.data?.user;
       if (updatedUser) {
         const avatarUrl = resolveAvatarUrl(updatedUser.avatar);

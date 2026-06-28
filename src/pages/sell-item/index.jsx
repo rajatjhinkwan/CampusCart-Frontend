@@ -283,7 +283,7 @@ export default function SellItem() {
 
         const categoryId = await resolveListingCategoryId("product");
         if (!categoryId) {
-          toast.error("Could not resolve product category. Please go back and select a category again.");
+          toast.error("Could not find a product category. Refresh the page and pick the type again.");
           setIsSubmitting(false);
           return;
         }
@@ -358,12 +358,7 @@ export default function SellItem() {
 
       const response = await axios.post(
         `/api/${endpoint}`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
+        formData
       );
 
       if (response.data.success) {

@@ -110,9 +110,7 @@ const UserProfile = () => {
     }
 
     try {
-      const res = await axios.put("/api/users/me", data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await axios.put("/api/users/me", data);
       
       if (res.data.success) {
         const updatedUser = res.data.user;

@@ -51,7 +51,21 @@ export function categoryIdString(cat) {
 
 export function hasParent(cat) {
   const parent = cat?.parent;
-  return parent != null && parent !== "";
+  if (parent == null || parent === "") return false;
+  if (typeof parent === "object") {
+    return Boolean(parent._id || parent.id);
+  }
+  return true;
+}
+
+export function parentIdString(cat) {
+  const parent = cat?.parent;
+  if (!parent) return null;
+  if (typeof parent === "object") {
+    const id = parent._id ?? parent.id;
+    return id ? String(id) : null;
+  }
+  return String(parent);
 }
 
 export function buildCategoryMap(categories = []) {

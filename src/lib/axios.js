@@ -1,39 +1,50 @@
 import axios from 'axios';
 import { getApiBaseUrl } from './apiConfig';
+import {
+  clearStoredSession,
+  getStoredAuth,
+  isStaleSessionError,
+  setStoredAccessToken,
+} from './authStorage';
 
 const axiosInstance = axios.create({
     baseURL: getApiBaseUrl(),
     withCredentials: true,
 });
 
-const getStoredAuth = () => {
-    try {
-        const raw = localStorage.getItem('user-storage');
-        if (!raw) return null;
-        return JSON.parse(raw)?.state || null;
-    } catch {
-        return null;
-    }
+let getStore = () => null;
+let setStoreState = () => {};
+
+export function bindAuthStore(readStore, writeStore) {
+  getStore = readStore;
+  setStoreState = writeStore;
+}
+
+const getAccessToken = () => {
+    const fromStore = getStore?.()?.accessToken;
+    if (fromStore) return fromStore;
+    return getStoredAuth()?.accessToken || null;
 };
 
-const setStoredAccessToken = (accessToken) => {
-    try {
-        const raw = localStorage.getItem('user-storage');
-        if (!raw) return;
-        const parsed = JSON.parse(raw);
-        if (!parsed?.state) return;
-        parsed.state.accessToken = accessToken;
-        localStorage.setItem('user-storage', JSON.stringify(parsed));
-    } catch {
-        // ignore storage errors
+const getRefreshToken = () => {
+    const fromStore = getStore?.()?.refreshToken;
+    if (fromStore) return fromStore;
+    return getStoredAuth()?.refreshToken || null;
+};
+
+const clearStaleSession = () => {
+    clearStoredSession();
+    const store = getStore?.();
+    if (store?.clearSession) {
+        store.clearSession();
     }
 };
 
 axiosInstance.interceptors.request.use(
     (config) => {
-        const auth = getStoredAuth();
-        if (auth?.accessToken) {
-            config.headers.Authorization = `Bearer ${auth.accessToken}`;
+        const accessToken = getAccessToken();
+        if (accessToken) {
+            config.headers.Authorization = `Bearer ${accessToken}`;
         }
         return config;
     },
@@ -48,6 +59,11 @@ axiosInstance.interceptors.response.use(
         const originalRequest = error.config;
         const status = error.response?.status;
 
+        if (isStaleSessionError(error)) {
+            clearStaleSession();
+            return Promise.reject(error);
+        }
+
         if (
             status !== 401 ||
             !originalRequest ||
@@ -59,8 +75,9 @@ axiosInstance.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        const auth = getStoredAuth();
-        if (!auth?.refreshToken) {
+        const refreshToken = getRefreshToken();
+        if (!refreshToken) {
+            clearStaleSession();
             return Promise.reject(error);
         }
 
@@ -69,7 +86,7 @@ axiosInstance.interceptors.response.use(
         try {
             if (!refreshPromise) {
                 refreshPromise = axiosInstance
-                    .post('/api/auth/refresh', { token: auth.refreshToken })
+                    .post('/api/auth/refresh', { token: refreshToken })
                     .finally(() => {
                         refreshPromise = null;
                     });
@@ -78,14 +95,17 @@ axiosInstance.interceptors.response.use(
             const refreshRes = await refreshPromise;
             const newAccessToken = refreshRes.data?.accessToken;
             if (!newAccessToken) {
+                clearStaleSession();
                 return Promise.reject(error);
             }
 
             setStoredAccessToken(newAccessToken);
+            setStoreState({ accessToken: newAccessToken, isAuthenticated: true });
             originalRequest.headers = originalRequest.headers || {};
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return axiosInstance(originalRequest);
         } catch (refreshError) {
+            clearStaleSession();
             return Promise.reject(refreshError);
         }
     }

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import axios from '../lib/axios';
+import axios, { bindAuthStore } from '../lib/axios';
+import { isStaleSessionError } from '../lib/authStorage';
 import { toast } from 'react-hot-toast';
 
 export const useUserStore = create(
@@ -17,6 +18,18 @@ export const useUserStore = create(
 
             // Helper to reset error
             clearError: () => set({ error: null }),
+
+            clearSession: () => {
+                set({
+                    user: null,
+                    accessToken: null,
+                    refreshToken: null,
+                    loading: false,
+                    error: null,
+                    checkedAuth: true,
+                    isAuthenticated: false,
+                });
+            },
 
             signup: async ({ name, email, password, role, location }) => {
                 set({ loading: true, error: null });
@@ -151,6 +164,11 @@ export const useUserStore = create(
                     set({ user, loading: false, checkedAuth: true, isAuthenticated: true });
                 } catch (error) {
                     console.error("CheckAuth error:", error);
+                    if (isStaleSessionError(error)) {
+                        get().clearSession();
+                        set({ loading: false, checkedAuth: true, isAuthenticated: false });
+                        return;
+                    }
                     // If 401, token is invalid. Try refresh or logout.
                     if (error.response?.status === 401) {
                         await get().regenerateAccessToken();
@@ -165,7 +183,7 @@ export const useUserStore = create(
             regenerateAccessToken: async () => {
                 const rToken = get().refreshToken;
                 if (!rToken) {
-                    set({ user: null, accessToken: null, refreshToken: null, loading: false, checkedAuth: true, isAuthenticated: false });
+                    get().clearSession();
                     return;
                 }
 
@@ -177,7 +195,7 @@ export const useUserStore = create(
                     set({ user, loading: false, checkedAuth: true, isAuthenticated: true });
                 } catch (err) {
                     console.error("Refresh token failed:", err);
-                    set({ user: null, accessToken: null, refreshToken: null, loading: false, checkedAuth: true, isAuthenticated: false });
+                    get().clearSession();
                     toast.error("Session expired, please login again.");
                 }
             },
@@ -185,15 +203,16 @@ export const useUserStore = create(
             updateProfile: async (data) => {
                 set({ loading: true, error: null });
                 try {
-                    const isFormData = typeof FormData !== 'undefined' && data instanceof FormData;
-                    const res = await axios.put('/api/users/me', data, isFormData ? {
-                        headers: { 'Content-Type': 'multipart/form-data' },
-                    } : undefined);
-                    set({ user: (res.data?.user || res.data), loading: false });
+                    const res = await axios.put('/api/users/me', data);
+                    const updated = res.data?.user || res.data;
+                    set({ user: updated, loading: false });
                     toast.success('Profile updated');
+                    return { success: true, user: updated };
                 } catch (error) {
-                    set({ loading: false, error: error.response?.data?.message || 'Update failed' });
-                    toast.error("Failed to update profile");
+                    const message = error.response?.data?.message || 'Update failed';
+                    set({ loading: false, error: message });
+                    toast.error(message);
+                    return { success: false, error: message };
                 }
             },
 
@@ -363,7 +382,6 @@ export const useUserStore = create(
                     const fd = new FormData();
                     Array.from(files || []).forEach((f) => fd.append('images', f));
                     const res = await axios.post('/api/messages/attachments', fd, {
-                        headers: { 'Content-Type': 'multipart/form-data' },
                         onUploadProgress: (evt) => {
                             if (!evt.total) return;
                             const pct = Math.round((evt.loaded / evt.total) * 100);
@@ -463,3 +481,5 @@ export const useUserStore = create(
         }
     )
 );
+
+bindAuthStore(() => useUserStore.getState(), (partial) => useUserStore.setState(partial));
